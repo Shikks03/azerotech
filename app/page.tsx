@@ -10,6 +10,7 @@ import {
   Smartphone,
   Monitor,
   ShoppingBag,
+  Printer,
   Zap,
   Shield,
   Clock3,
@@ -205,7 +206,7 @@ export default function Home() {
           </motion.div>
 
           {/* Cards */}
-          <div className="flex flex-col sm:flex-row items-stretch gap-10 mb-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-3">
             {[
               {
                 Icon: Smartphone,
@@ -214,6 +215,7 @@ export default function Home() {
                 href: "/services#phone",
                 color: "#4F6EF7",
                 bg: "#EEF1FF",
+                label: "Learn more",
                 delay: 0,
               },
               {
@@ -223,7 +225,18 @@ export default function Home() {
                 href: "/services#laptop",
                 color: "#06B6D4",
                 bg: "#ECFEFF",
+                label: "Learn more",
                 delay: 0.08,
+              },
+              {
+                Icon: Printer,
+                title: "Printing Services",
+                desc: "Document, photo, and ID printing — quick turnaround at affordable rates.",
+                href: "/services#printing",
+                color: "#F59E0B",
+                bg: "#FFFBEB",
+                label: "Learn more",
+                delay: 0.16,
               },
               {
                 Icon: ShoppingBag,
@@ -232,36 +245,37 @@ export default function Home() {
                 href: "/accessories",
                 color: "#8B5CF6",
                 bg: "#F5F3FF",
-                delay: 0.16,
+                label: "Check Accessories",
+                delay: 0.24,
               },
             ].map((item) => (
               <motion.div
                 key={item.title}
                 {...fadeUpView(item.delay)}
-                className="flex-1"
+                className="flex"
               >
-                <Link href={item.href} className="flex flex-col h-full">
+                <Link href={item.href} className="flex flex-col h-full w-full">
                   <div
-                    className="flex flex-col flex-1 bg-white rounded-2xl p-11 border border-slate-100 hover:border-transparent hover:shadow-xl transition-all duration-300 group cursor-pointer"
+                    className="flex flex-col flex-1 bg-white rounded-2xl p-8 border border-slate-100 hover:border-transparent hover:shadow-xl transition-all duration-300 group cursor-pointer"
                     style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}
                   >
                     <div
-                      className="w-14 h-14 rounded-xl flex items-center justify-center mb-10 transition-transform duration-300 group-hover:scale-110 shrink-0"
+                      className="w-14 h-14 rounded-xl flex items-center justify-center mb-8 transition-transform duration-300 group-hover:scale-110 shrink-0"
                       style={{ background: item.bg }}
                     >
                       <item.Icon className="w-7 h-7" style={{ color: item.color }} />
                     </div>
-                    <h3 className="text-[#0F172A] mb-5" style={{ fontSize: "1.2rem", fontWeight: 700 }}>
+                    <h3 className="text-[#0F172A] mb-4" style={{ fontSize: "1.1rem", fontWeight: 700 }}>
                       {item.title}
                     </h3>
-                    <p className="text-slate-500 text-sm leading-relaxed flex-1 mb-10">
+                    <p className="text-slate-500 text-sm leading-relaxed flex-1 mb-8">
                       {item.desc}
                     </p>
                     <span
                       className="inline-flex items-center gap-2 text-sm transition-all group-hover:gap-3"
                       style={{ color: item.color, fontWeight: 600 }}
                     >
-                      Learn more <ArrowRight className="w-4 h-4 shrink-0" />
+                      {item.label} <ArrowRight className="w-4 h-4 shrink-0" />
                     </span>
                   </div>
                 </Link>
