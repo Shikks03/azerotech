@@ -213,14 +213,8 @@ export default function AdminPage() {
   const [lcdSearch, setLcdSearch] = useState("");
   const [lcdSort, setLcdSort] = useState<"name-asc" | "name-desc" | "low-stock" | "no-stock">("name-asc");
 
-  // LCD Stock state (localStorage-backed)
-  const [lcdItems, setLcdItems] = useState<LcdItem[]>(() => {
-    try {
-      const stored = localStorage.getItem("azerotech_lcd_stock");
-      if (stored) return JSON.parse(stored) as LcdItem[];
-    } catch {}
-    return [];
-  });
+  // LCD Stock state (cloud-backed)
+  const [lcdItems, setLcdItems] = useState<LcdItem[]>([]);
   const [lcdStockInputs, setLcdStockInputs] = useState<Record<number, string>>({});
   const [showAddLcdModal, setShowAddLcdModal] = useState(false);
   const [editingLcd, setEditingLcd] = useState<LcdItem | null>(null);
@@ -241,12 +235,14 @@ export default function AdminPage() {
       fetch("/api/reservations").then((r) => r.json()),
       fetch("/api/products").then((r) => r.json()),
       fetch("/api/customers").then((r) => r.json()),
-    ]).then(async ([appts, resrvs, prods, custs]) => {
+      fetch("/api/lcd-stock").then((r) => r.json()),
+    ]).then(async ([appts, resrvs, prods, custs, lcds]) => {
       const apptList = appts as AppointmentEntry[];
       const resvList = resrvs as ReservationEntry[];
       setAppointments(apptList);
       setReservations(resvList);
       setProducts(prods as Product[]);
+      setLcdItems(lcds as LcdItem[]);
 
       // Fetch service records for all customers
       const custList = custs as (Omit<CustomerEntry, "id"> & { _id: string })[];
@@ -277,29 +273,40 @@ export default function AdminPage() {
 
   const loadData = () => setRefreshKey((k) => k + 1);
 
-  // Persist LCD items to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem("azerotech_lcd_stock", JSON.stringify(lcdItems));
-  }, [lcdItems]);
-
-  const updateLcdStock = (id: number, newStock: number) => {
+  const updateLcdStock = async (id: number, newStock: number) => {
     if (newStock < 0) return;
     setLcdItems((prev) => prev.map((item) => item.id === id ? { ...item, stock: newStock } : item));
+    await fetch(`/api/lcd-stock/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ stock: newStock }),
+    });
   };
 
-  const addLcdItem = (name: string, stock: number) => {
-    const newId = Date.now();
-    setLcdItems((prev) => [...prev, { id: newId, name: name.trim(), stock }]);
+  const addLcdItem = async (name: string, stock: number) => {
+    const res = await fetch("/api/lcd-stock", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, stock }),
+    });
+    const newItem = await res.json() as LcdItem;
+    setLcdItems((prev) => [...prev, newItem]);
     setShowAddLcdModal(false);
   };
 
-  const editLcdName = (id: number, name: string) => {
+  const editLcdName = async (id: number, name: string) => {
     setLcdItems((prev) => prev.map((item) => item.id === id ? { ...item, name: name.trim() } : item));
+    await fetch(`/api/lcd-stock/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: name.trim() }),
+    });
     setEditingLcd(null);
   };
 
-  const deleteLcdItem = (id: number) => {
+  const deleteLcdItem = async (id: number) => {
     setLcdItems((prev) => prev.filter((item) => item.id !== id));
+    await fetch(`/api/lcd-stock/${id}`, { method: "DELETE" });
     setConfirmDeleteLcdId(null);
   };
 
