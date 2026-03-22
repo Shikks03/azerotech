@@ -19,6 +19,7 @@ Track new features, bugs, and problems for the AzeroTech project.
 | 6 | Skeleton loaders for accessories | Animated placeholder cards shown while product data loads from the database instead of a blank grid. |
 | 8 | Admin loading state | Spinner + "Fetching data…" screen shown while the admin panel is loading appointments, reservations, and products from the database. |
 | 9 | Admin appointment search by name | Appointment search bar now matches against both Appointment ID and customer name. |
+| 10 | Appointment number generation | Unique appointment IDs (format: `AZT-YYYYMMDD-XXXX`) are generated on booking submission, displayed on the confirmation screen, and used by the admin dashboard for lookup. |
 
 ---
 
@@ -28,8 +29,7 @@ Track new features, bugs, and problems for the AzeroTech project.
 |---|---------|--------|-------------|----------|
 | 1 | Repair Status Checker | Spec | Page where customers enter their phone number or repair receipt number and see their repair stage: Device Received → Waiting for Parts → Fixing → Ready for Pickup. | High |
 | 2 | Disable/hide booked time slots | Spec | Pull booked appointment slots from DB and mark them as unavailable in the booking form so customers can't double-book. | High |
-| 3 | Appointment number generation | Suggestion | Generate a unique appointment ID (format: `AZT-YYYYMMDD-XXXX`) when a booking is submitted. Display it on the confirmation screen so customers can show it at the shop. Admin dashboard will use it to look up and validate bookings. | High |
-| 4 | Repair tracking panel for staff | Spec | Staff-facing UI to update repair status stages so customers see live progress via the Repair Status Checker. | Medium |
+| 3 | Repair tracking panel for staff | Spec | Staff-facing UI to update repair status stages so customers see live progress via the Repair Status Checker. | Medium |
 | 5 | Customer repair history | Spec | Allow returning customers to look up past repairs by phone number. | Low |
 | 6 | Multi-branch management | Spec | Support for a second shop location — add it to the map embed and let customers choose a branch when booking. | Low |
 | 7 | FAQ section | Suggestion | Collapsible FAQ on the Services or Home page answering common questions (repair time, warranty, price range). Reduces repetitive customer messages. | Medium |
@@ -58,4 +58,4 @@ Track new features, bugs, and problems for the AzeroTech project.
 
 | # | Problem | Description | Status |
 |---|---------|-------------|--------|
-| — | — | — | — |
+| 1 | Security vulnerability audit | Review the entire site for common web vulnerabilities: input validation, API route authorization, XSS, injection, exposed secrets, insecure headers, and admin access controls. | `Todo` |

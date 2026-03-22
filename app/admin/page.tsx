@@ -705,7 +705,7 @@ export default function AdminPage() {
                   <div className="flex gap-3">
                     <input
                       type="text"
-                      placeholder="Search by Appointment ID or name…"
+                      placeholder="Search by Appointment ID, name, or phone…"
                       value={apptSearch}
                       onChange={(e) => setApptSearch(e.target.value)}
                       className="flex-1 px-4 py-3 rounded-xl text-sm font-medium focus:outline-none"
@@ -744,7 +744,8 @@ export default function AdminPage() {
                           const q = apptSearch.trim().toLowerCase();
                           return (
                             (a.appointmentId ?? "").toLowerCase().includes(q) ||
-                            a.name.toLowerCase().includes(q)
+                            a.name.toLowerCase().includes(q) ||
+                            (a.phone ?? "").includes(q)
                           );
                         })
                       : appointments;
