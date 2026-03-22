@@ -49,7 +49,6 @@ function parseTimeToMinutes(t: string): number {
   return h * 60 + min;
 }
 
-const ADMIN_PASSWORD = "admin123";
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
 type EntryStatus = "Pending" | "Confirmed" | "Completed" | "Cancelled";
@@ -177,6 +176,7 @@ export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
   const [loginError, setLoginError] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState<"appointments" | "reservations" | "inventory" | "lcd-stock" | "customers">("appointments");
   const [appointments, setAppointments] = useState<AppointmentEntry[]>([]);
   const [reservations, setReservations] = useState<ReservationEntry[]>([]);
@@ -310,15 +310,27 @@ export default function AdminPage() {
     setConfirmDeleteLcdId(null);
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (passwordInput === ADMIN_PASSWORD) {
-      sessionStorage.setItem("azerotech_admin_authed", "true");
-      setLoading(true);
-      setIsAuthenticated(true);
-      setLoginError(false);
-    } else {
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: passwordInput }),
+      });
+      if (res.ok) {
+        sessionStorage.setItem("azerotech_admin_authed", "true");
+        setLoading(true);
+        setIsAuthenticated(true);
+        setLoginError(false);
+      } else {
+        setLoginError(true);
+      }
+    } catch {
       setLoginError(true);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -553,13 +565,14 @@ export default function AdminPage() {
 
             <button
               type="submit"
-              className="w-full text-white py-3.5 rounded-xl font-semibold transition-all hover:opacity-90"
+              disabled={submitting}
+              className="w-full text-white py-3.5 rounded-xl font-semibold transition-all hover:opacity-90 disabled:opacity-60"
               style={{
                 background: "linear-gradient(135deg, #4F6EF7, #6B84FF)",
                 boxShadow: "0 6px 20px rgba(79,110,247,0.3)",
               }}
             >
-              Sign In
+              {submitting ? "Checking..." : "Sign In"}
             </button>
           </form>
         </motion.div>
