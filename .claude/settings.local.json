@@ -6,7 +6,8 @@
       "Bash(mkdir:*)",
       "Bash(npx eslint app/admin/page.tsx)",
       "Bash(grep:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Skill(update-config)"
     ]
   },
   "enabledPlugins": {

@@ -72,7 +72,7 @@ MONGODB_URI=mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/azerotech
 
 ## Admin Panel (`/admin`)
 
-**Authentication:** Password is hardcoded in `app/admin/page.tsx`. Session stored in `sessionStorage` under key `azerotech_admin_authed`. There is no server-side session — the API routes themselves have no auth checks.
+**Authentication:** Password is read from `process.env.ADMIN_PASSWORD` via `app/api/admin/login/route.ts` (uses `timingSafeEqual` for secure comparison). Session stored in `sessionStorage` under key `azerotech_admin_authed`. There is no server-side session — the API routes themselves have no auth checks.
 
 **Tabs:** Appointments · Reservations · Inventory (Products) · LCD Stock · Customers
 
