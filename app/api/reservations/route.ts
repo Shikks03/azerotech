@@ -30,7 +30,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 });
   }
 
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
 
   // C2: Validate phone to prevent NoSQL injection
   const phone: unknown = body.phone;
@@ -44,6 +49,14 @@ export async function POST(req: NextRequest) {
   const pickupTime: unknown = body.pickupTime;
   const productName: unknown = body.productName;
   const productPrice: unknown = body.productPrice;
+  const productId: unknown = body.productId;
+
+  // M5: Validate productId if provided — must be a positive integer
+  if (productId !== undefined && productId !== null) {
+    if (typeof productId !== "number" || !Number.isInteger(productId) || productId <= 0) {
+      return NextResponse.json({ error: "productId must be a positive integer" }, { status: 400 });
+    }
+  }
 
   if (
     typeof name !== "string" || name.trim().length === 0 || name.length > 100 ||
@@ -98,6 +111,7 @@ export async function POST(req: NextRequest) {
     pickupTime: String(pickupTime),
     productName: String(productName),
     productPrice: parsedPrice,
+    ...(productId != null ? { productId: productId as number } : {}),
     status: "Pending",
     submittedAt: now.toISOString(),
     ...(customerId ? { customerId } : {}),

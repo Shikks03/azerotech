@@ -45,14 +45,20 @@ export async function PATCH(
   await db.collection(COL).updateOne({ id }, { $set: update });
 
   if (update.status && reservation && reservation.status !== update.status) {
+    // M5: Prefer numeric productId for stock lookup; fall back to name for legacy reservations
+    const productFilter = reservation.productId != null
+      ? { id: reservation.productId }
+      : { name: reservation.productName };
+
     if (update.status === "Completed") {
       await db.collection("products").updateOne(
-        { name: reservation.productName, stock: { $gt: 0 } },
+        { ...productFilter, stock: { $gt: 0 } },
         { $inc: { stock: -1 } }
       );
     } else if (reservation.status === "Completed") {
+      // No upper bound on stock — pre-existing behaviour; admin-only action.
       await db.collection("products").updateOne(
-        { name: reservation.productName },
+        productFilter,
         { $inc: { stock: 1 } }
       );
     }

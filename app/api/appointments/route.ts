@@ -32,7 +32,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 });
   }
 
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
 
   // C2: Validate phone to prevent NoSQL injection
   const phone: unknown = body.phone;

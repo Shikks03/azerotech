@@ -159,7 +159,7 @@ export default function Accessories() {
     await fetch("/api/reservations", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newEntry),
+      body: JSON.stringify({ ...newEntry, productId: reservingProduct.id }),
     });
     setSubmitting(false);
     setReserved(true);

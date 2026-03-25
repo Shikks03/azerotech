@@ -46,11 +46,11 @@ Reference: `.claude/projects/.../memory/project_pentest_findings.md`
 | M-2 | Appointment date not bounded server-side (accepts `9999-12-31`, past dates) | `app/api/appointments/route.ts` | ✅ Fixed | Validates `parsedDate >= today+1` and `<= today+60`; also rejects invalid calendar dates |
 | M-3 | Appointment ID collision (4-digit suffix, ~50% at 118/day) | `app/api/appointments/route.ts` | ✅ Fixed | 6-char hex suffix (`randomBytes(3)` = 16M values/day), unique index on `appointmentId`, up to 5 retries on E11000 |
 | M-4 | No double-booking prevention at API layer | `app/api/appointments/route.ts` | ✅ Fixed | Pre-insert check rejects `(date, time)` if Pending/Confirmed already exists, returns 409 |
-| M-5 | Stock decrement matches by product name string (mutable) | `app/api/reservations/[id]/route.ts` | ❌ Not Started | Store `productId` (numeric) on reservation at creation; match by ID |
+| M-5 | Stock decrement matches by product name string (mutable) | `app/api/reservations/[id]/route.ts` | ✅ Fixed | `productId` stored on reservation at creation; stock ops use `{ id: productId }` with name fallback for legacy docs; client (`app/accessories/page.tsx`) now sends `productId` |
 | M-6 | `booked-slots` date not validated server-side | `app/api/appointments/booked-slots/route.ts` | ✅ Fixed | Added `!/^\d{4}-\d{2}-\d{2}$/.test(date)` check — returns empty on invalid input |
 | M-7 | JWT cookie not `Secure` in development | `app/api/admin/login/route.ts` | ❌ Not Started | Low risk in dev; consider always-secure policy |
 | M-8 | Role claim not checked in `requireAdmin` | `lib/requireAdmin.ts` | ✅ Fixed | Added `payload.role !== "admin"` check |
-| M-9 | Infinite session — refresh fires regardless of activity | `app/admin/page.tsx` | ❌ Not Started | Track `lastActive` on mouse/key events; skip refresh if idle > 50 min |
+| M-9 | Infinite session — refresh fires regardless of activity | `app/admin/page.tsx` | ✅ Fixed | `lastActiveRef` + `mousemove`/`keydown`/`click` listeners; idle threshold 30 min (< 50 min interval ensures any 30+ min idle is caught in one pass); session expired instead of refreshed when idle |
 
 ---
 
@@ -61,7 +61,7 @@ Reference: `.claude/projects/.../memory/project_pentest_findings.md`
 | L-1 | `GET /api/products` returns `_id`, `stock`, injected fields to unauthenticated callers | ❌ Not Started | Add `.project({ _id: 0, stock: 0 })` for public callers |
 | L-2 | `booked-slots` returns exact time strings — competitive intelligence | ❌ Not Started | Rate-limit at 60 req/hr/IP |
 | L-3 | `Number(cost) \|\| 0` silently coerces undefined/NaN to 0 | ✅ Fixed (via H-8) | Covered by H-8 validation |
-| L-4 | No `Content-Type: application/json` validation — unhandled 500 leaks stack traces | ❌ Not Started | Wrap `req.json()` in try/catch on public endpoints |
+| L-4 | No `Content-Type: application/json` validation — unhandled 500 leaks stack traces | ✅ Fixed | `req.json()` wrapped in try/catch on `appointments` and `reservations` POST routes; returns `400 Invalid request body` on malformed input |
 | L-5 | Auth probe fetches full `/api/appointments` just to check auth | ❌ Not Started | Create `GET /api/admin/ping` endpoint |
 | L-6 | CSP has `unsafe-inline` + `unsafe-eval` globally | ❌ Not Started | Tighten CSP on admin route |
 | L-7 | LCD stock `String(body.name)` coerces `undefined` to `"undefined"` | ✅ Fixed (via H-5) | Added string type check in lcd-stock PATCH |
@@ -87,9 +87,6 @@ Reference: `.claude/projects/.../memory/project_pentest_findings.md`
 All critical/high blockers are now resolved. Remaining before launch:
 
 1. ⚠️ **Admin password** — Still `passwordlmao`, must be changed
-2. ❌ **M-5** — Stock decrement by product name (rename breaks it)
-3. ❌ **M-9** — Infinite session (no idle timeout)
-4. ❌ **L-4** — Unhandled `req.json()` errors on public routes (500 leaks stack trace)
 
 ---
 
@@ -99,3 +96,4 @@ All critical/high blockers are now resolved. Remaining before launch:
 |------|---------|
 | 2026-03-24 Session 1 | Fixed C-1, C-2, C-3, H-1(partial), H-2, H-3, H-4, H-5, H-6, H-7, H-8, M-1(via H-3), M-8, L-3(via H-8), L-7(via H-5) |
 | 2026-03-24 Session 2 | Fixed C-4 (rate limiting via `lib/publicRateLimit.ts`), M-2 (date bounds), M-3 (hex ID + unique index + retry), M-4 (double-booking check), M-6 (booked-slots validation), C-2 also applied to reservations `nameMismatches` |
+| 2026-03-26 Session 3 | Fixed M-5 (`productId` stored on reservation; stock ops use numeric ID with name fallback), M-9 (30 min idle timeout via `lastActiveRef` + window events), L-4 (`req.json()` try/catch on appointments + reservations POST routes) |

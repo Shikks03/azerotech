@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Lock,
@@ -173,6 +173,7 @@ function formatSubmittedDate(iso: string) {
 }
 
 export default function AdminPage() {
+  const lastActiveRef = useRef<number>(Date.now());
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
   const [loginError, setLoginError] = useState(false);
@@ -268,7 +269,15 @@ export default function AdminPage() {
   useEffect(() => {
     if (!isAuthenticated) return;
     const REFRESH_INTERVAL_MS = 50 * 60 * 1000;
+    const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // expire session after 30 min idle (shorter than refresh interval so any 30+ min idle is caught within one interval fire)
     const timer = setInterval(async () => {
+      const idleMs = Date.now() - lastActiveRef.current;
+      if (idleMs >= IDLE_TIMEOUT_MS) {
+        // Idle for 30+ minutes — expire the session
+        sessionStorage.removeItem("azerotech_admin_authed");
+        setIsAuthenticated(false);
+        return;
+      }
       const res = await fetch("/api/admin/refresh", {
         method: "POST",
         headers: { "X-Requested-With": "XMLHttpRequest" },
@@ -280,6 +289,18 @@ export default function AdminPage() {
     }, REFRESH_INTERVAL_MS);
     return () => clearInterval(timer);
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    const updateActivity = () => { lastActiveRef.current = Date.now(); };
+    window.addEventListener("mousemove", updateActivity);
+    window.addEventListener("keydown", updateActivity);
+    window.addEventListener("click", updateActivity);
+    return () => {
+      window.removeEventListener("mousemove", updateActivity);
+      window.removeEventListener("keydown", updateActivity);
+      window.removeEventListener("click", updateActivity);
+    };
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) return;

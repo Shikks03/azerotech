@@ -2,9 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Project Docs
+
+All context/tracking documents live in **`.context/`** (not the root):
+- `.context/SECURITY_PROGRESS.md` — pentest findings and fix status
+- `.context/TRACKER.md` — feature/bug tracker
+- `.context/Azerotech.md` — project overview
+
 ## Security Work
 
-**`SECURITY_PROGRESS.md`** tracks all pentest findings and fix status. When doing any security-related work:
+**`.context/SECURITY_PROGRESS.md`** tracks all pentest findings and fix status. When doing any security-related work:
 - **Read it first** to understand current state before touching anything
 - **Update it immediately** after every fix (status, notes, sessions log)
 - Never mark something fixed without verifying the code change is actually in place
@@ -38,24 +45,26 @@ Next.js 16 App Router project. All pages are client components (`"use client"`).
 
 ## API Routes
 
-All routes are under `app/api/`. There is currently no authentication middleware — all endpoints are publicly accessible.
+All routes are under `app/api/`. Public endpoints (appointments, reservations POST) are rate-limited via `lib/publicRateLimit.ts`. All admin routes require `requireAdmin()` (`lib/requireAdmin.ts`).
 
-| Route | Methods | Purpose |
-|-------|---------|---------|
-| `/api/appointments` | GET, POST | List all / create appointment (generates `AZT-YYMMDD-XXXX` ID, upserts customer) |
-| `/api/appointments/booked-slots` | GET (`?date=YYYY-MM-DD`) | Return booked times for a date (Pending/Confirmed only) |
-| `/api/appointments/[id]` | PATCH, DELETE | Update status/details / delete |
-| `/api/reservations` | GET, POST | List all / create reservation (upserts customer) |
-| `/api/reservations/[id]` | PATCH, DELETE | Update (auto-adjusts product stock on Completed) / delete |
-| `/api/products` | GET, POST | List all / create product (auto-increments numeric ID) |
-| `/api/products/[id]` | PATCH, DELETE | Update details or stock / delete |
-| `/api/products/seed` | POST | Seed sample products |
-| `/api/lcd-stock` | GET, POST | List all / create LCD stock item |
-| `/api/lcd-stock/[id]` | PATCH, DELETE | Update name/stock / delete |
-| `/api/customers` | GET, POST | List all / create customer (phone is unique key) |
-| `/api/customers/[id]` | PATCH, DELETE | Update / delete (cascades: unlinks appointments + reservations) |
-| `/api/customers/[id]/records` | GET, POST | List / create service records for a customer |
-| `/api/customers/[id]/records/[recordId]` | DELETE | Delete a service record |
+| Route | Methods | Auth | Purpose |
+|-------|---------|------|---------|
+| `/api/appointments` | GET, POST | Admin (GET), Public (POST) | List all / create appointment (generates `AZT-YYMMDD-XXXXXX` ID, upserts customer) |
+| `/api/appointments/booked-slots` | GET (`?date=YYYY-MM-DD`) | Public | Return booked times for a date (Pending/Confirmed only) |
+| `/api/appointments/[id]` | PATCH, DELETE | Admin | Update status/details / delete |
+| `/api/reservations` | GET, POST | Admin (GET), Public (POST) | List all / create reservation (upserts customer) |
+| `/api/reservations/[id]` | PATCH, DELETE | Admin | Update (auto-adjusts product stock on Completed) / delete |
+| `/api/products` | GET, POST | Public (GET), Admin (POST) | List all / create product (auto-increments numeric ID) |
+| `/api/products/[id]` | PATCH, DELETE | Admin | Update details or stock / delete |
+| `/api/lcd-stock` | GET, POST | Admin | List all / create LCD stock item |
+| `/api/lcd-stock/[id]` | PATCH, DELETE | Admin | Update name/stock / delete |
+| `/api/customers` | GET, POST | Admin | List all / create customer (phone is unique key) |
+| `/api/customers/[id]` | PATCH, DELETE | Admin | Update / delete (cascades: unlinks appointments + reservations) |
+| `/api/customers/[id]/records` | GET, POST | Admin | List / create service records for a customer |
+| `/api/customers/[id]/records/[recordId]` | DELETE | Admin | Delete a service record |
+| `/api/admin/login` | POST | Public | Issue JWT cookie; bcrypt + rate limiting |
+| `/api/admin/logout` | POST | Admin | Revoke JTI + clear cookie |
+| `/api/admin/refresh` | POST | Admin | Rotate JWT; rejects concurrent refresh via unique JTI index |
 
 ## Database
 
@@ -74,17 +83,18 @@ Generate: `node -e "const b=require('bcryptjs');console.log(b.hashSync('YOUR_PAS
 | Collection | Key Fields |
 |------------|-----------|
 | `appointments` | `id` (UUID), `appointmentId` (AZT-…), `customerId`, `status`, `date`, `time`, `service`, `name`, `phone`, `brand`, `deviceType`, `problem?` |
-| `reservations` | `id` (UUID), `customerId`, `status`, `pickupDate`, `pickupTime`, `productName`, `productPrice` |
+| `reservations` | `id` (UUID), `customerId`, `status`, `pickupDate`, `pickupTime`, `productName`, `productPrice`, `productId?` (numeric, for stock lookup) |
 | `products` | `id` (numeric, auto-increment), `name`, `price`, `category`, `image`, `stock` |
 | `lcd_stock` | `id` (numeric, auto-increment), `name`, `stock` |
 | `customers` | `_id` (ObjectId), `name`, `phone` (unique), `type`, `nameMismatches[]`, `createdAt` |
 | `serviceRecords` | `_id`, `customerId`, `date`, `service`, `device`, `cost`, `notes`, `createdAt` |
 | `revoked_sessions` | `jti`, `expiresAt` (TTL index), `revokedAt` — auto-deleted after token expiry |
 | `login_attempts` | `ip`, `attempts`, `lastAttempt`, `lockUntil?` — auto-cleared after 24h inactivity |
+| `public_rate_limits` | `ip`, `requests[]` — sliding window for public POST rate limiting via `lib/publicRateLimit.ts` |
 
 ## Admin Panel (`/admin`)
 
-**Authentication:** Login issues an `httpOnly` JWT cookie (`azerotech_admin_token`, 1h TTL, SameSite=Strict) signed with `JWT_SECRET`. Password is verified via bcrypt against `ADMIN_PASSWORD_HASH`. Rate limiting (5 attempts → 15 min lockout) uses the `login_attempts` MongoDB collection. Logout revokes the JTI in `revoked_sessions`. A silent refresh fires every 50 min via `/api/admin/refresh`. Session state is also mirrored in `sessionStorage` key `azerotech_admin_authed` for the UI. All protected API routes call `requireAdmin()` (`lib/requireAdmin.ts`) which checks the cookie, verifies the JWT, and checks the revocation list. Mutation requests also require the `X-Requested-With: XMLHttpRequest` header (CSRF defense). New libs: `lib/auth.ts` (JWT helpers), `lib/requireAdmin.ts` (server-side auth guard).
+**Authentication:** Login issues an `httpOnly` JWT cookie (`azerotech_admin_token`, 1h TTL, SameSite=Strict) signed with `JWT_SECRET`. Password is verified via bcrypt against `ADMIN_PASSWORD_HASH`. Rate limiting (5 attempts → 15 min lockout) uses the `login_attempts` MongoDB collection. Logout revokes the JTI in `revoked_sessions`. A silent refresh fires every 50 min via `/api/admin/refresh` — but only if the user was active in the last 30 min; otherwise the session is expired client-side (idle tracked via `mousemove`/`keydown`/`click` on `window`). Session state is also mirrored in `sessionStorage` key `azerotech_admin_authed` for the UI. All protected API routes call `requireAdmin()` (`lib/requireAdmin.ts`) which checks the cookie, verifies the JWT (including `role: "admin"` claim), and checks the revocation list. Mutation requests also require the `X-Requested-With: XMLHttpRequest` header (CSRF defense). Libs: `lib/auth.ts` (JWT helpers), `lib/requireAdmin.ts` (server-side auth guard), `lib/publicRateLimit.ts` (sliding-window rate limiter for public POSTs: 20 req/10 min per IP).
 
 **Tabs:** Appointments · Reservations · Inventory (Products) · LCD Stock · Customers
 
@@ -104,9 +114,10 @@ Animations use the `motion` library with `whileInView` + fade-up pattern: `initi
 
 ## Key Notes
 
-- Phone validation enforces Philippine format: `09XXXXXXXXX` (11 digits starting with `09`). Applied client-side only; API routes do not re-validate.
-- Appointment date picker: 1–60 days ahead. Reservation date picker: 1–180 days ahead.
-- Appointment IDs use format `AZT-YYMMDD-XXXX` (2-digit year + month + day + 4-digit random suffix).
+- Phone validation enforces Philippine format: `09XXXXXXXXX` (11 digits starting with `09`). Validated both client-side and server-side on all public POST and admin PATCH routes.
+- Appointment date picker: 1–60 days ahead (enforced server-side too). Reservation date picker: 1–180 days ahead.
+- Appointment IDs use format `AZT-YYMMDD-XXXXXX` (2-digit year + month + day + **6-char hex** suffix, unique index + up to 5 retries on collision).
 - Currency is Philippine Peso (₱).
 - Remote images are served from `images.unsplash.com` (configured in `next.config.ts`).
-- When a reservation status changes to "Completed", `PATCH /api/reservations/[id]` automatically decrements the corresponding product's stock in MongoDB.
+- When a reservation status changes to "Completed", `PATCH /api/reservations/[id]` decrements the product's stock. Lookup uses `productId` (numeric) if present on the reservation, falling back to `productName` for legacy documents.
+- Public POST routes (`/api/appointments`, `/api/reservations`) wrap `req.json()` in try/catch — malformed bodies return `400 Invalid request body` instead of a 500.
