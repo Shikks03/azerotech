@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
+import { requireAdmin } from "@/lib/requireAdmin";
 
 const DB = "azerotech";
 
@@ -8,6 +9,9 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const authError = await requireAdmin(req);
+  if (authError) return authError;
+
   const { id } = await params;
   const body = await req.json();
   const client = await clientPromise;
@@ -21,19 +25,44 @@ export async function PATCH(
   }
 
   const update: Record<string, unknown> = {};
-  if (body.name !== undefined) update.name = body.name;
-  if (body.phone !== undefined) update.phone = body.phone;
+
+  // H7: Validate name and phone before writing
+  if (body.name !== undefined) {
+    if (typeof body.name !== "string" || body.name.trim().length === 0 || body.name.length > 100) {
+      return NextResponse.json({ error: "Invalid name" }, { status: 400 });
+    }
+    update.name = body.name.trim();
+  }
+  if (body.phone !== undefined) {
+    if (typeof body.phone !== "string" || !/^09\d{9}$/.test(body.phone)) {
+      return NextResponse.json({ error: "Invalid phone number" }, { status: 400 });
+    }
+    // Check for duplicate phone on a different customer
+    const dup = await db.collection("customers").findOne({
+      phone: body.phone,
+      _id: { $ne: new ObjectId(id) },
+    });
+    if (dup) return NextResponse.json({ error: "Phone already in use" }, { status: 409 });
+    update.phone = body.phone;
+  }
   // Dismiss all mismatch warnings
   if (body.dismissMismatches) update.nameMismatches = [];
+
+  if (Object.keys(update).length === 0) {
+    return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
+  }
 
   await db.collection("customers").updateOne(filter, { $set: update });
   return NextResponse.json({ ok: true });
 }
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const authError = await requireAdmin(req);
+  if (authError) return authError;
+
   const { id } = await params;
   const client = await clientPromise;
   const db = client.db(DB);

@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
+import { requireAdmin } from "@/lib/requireAdmin";
 
 const DB = "azerotech";
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string; recordId: string }> }
 ) {
-  const { recordId } = await params;
+  const authError = await requireAdmin(req);
+  if (authError) return authError;
+
+  const { id, recordId } = await params;
   const client = await clientPromise;
 
   let oid: ObjectId;
@@ -18,6 +22,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Invalid recordId" }, { status: 400 });
   }
 
-  await client.db(DB).collection("serviceRecords").deleteOne({ _id: oid });
+  // M3: Include customerId in filter to prevent IDOR (a record can only be deleted by its owner's customer route)
+  await client.db(DB).collection("serviceRecords").deleteOne({ _id: oid, customerId: id });
   return NextResponse.json({ ok: true });
 }

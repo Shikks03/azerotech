@@ -3,10 +3,13 @@ import clientPromise from "@/lib/mongodb";
 
 export async function GET(req: NextRequest) {
   const date = req.nextUrl.searchParams.get("date");
-  if (!date) return NextResponse.json({ bookedTimes: [] });
+  // M6: Validate date format before passing to MongoDB query
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return NextResponse.json({ bookedTimes: [] });
+  }
 
   const client = await clientPromise;
-  const db = client.db();
+  const db = client.db("azerotech");
   const docs = await db
     .collection("appointments")
     .find({ date, status: { $in: ["Pending", "Confirmed"] } })

@@ -1,17 +1,95 @@
 import { NextRequest, NextResponse } from "next/server";
-import { timingSafeEqual } from "crypto";
+import bcrypt from "bcryptjs";
+import { randomUUID } from "crypto";
+import { signAdminToken, COOKIE_NAME, TTL_SECONDS } from "@/lib/auth";
+import clientPromise from "@/lib/mongodb";
+
+const DB = "azerotech";
+const MAX_ATTEMPTS = 5;
+const LOCK_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+
+function getClientIp(req: NextRequest): string {
+  // H1: x-real-ip is set by the reverse proxy and cannot be spoofed by clients.
+  // x-forwarded-for comes first only as last resort since any client can forge it.
+  return (
+    req.headers.get("x-real-ip") ??
+    req.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
+    "unknown"
+  );
+}
 
 export async function POST(req: NextRequest) {
+  // C4: CSRF defense — must carry custom header
+  if (req.headers.get("X-Requested-With") !== "XMLHttpRequest") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const ip = getClientIp(req);
+  const client = await clientPromise;
+  const attempts = client.db(DB).collection("login_attempts");
+
+  // Check rate limit
+  const record = await attempts.findOne({ ip });
+  if (record?.lockUntil && new Date(record.lockUntil) > new Date()) {
+    const remaining = Math.ceil(
+      (new Date(record.lockUntil).getTime() - Date.now()) / 1000 / 60
+    );
+    return NextResponse.json(
+      { error: `Too many attempts. Try again in ${remaining} minutes.` },
+      { status: 429 }
+    );
+  }
+
   const { password } = await req.json();
-  const stored = process.env.ADMIN_PASSWORD;
+  const hashEncoded = process.env.ADMIN_PASSWORD_HASH;
+  if (!hashEncoded) return NextResponse.json({ success: false }, { status: 500 });
+  // Hash is stored as base64 to prevent Next.js from expanding $ signs in .env files
+  const hash = Buffer.from(hashEncoded, "base64").toString();
 
-  if (!stored) return NextResponse.json({ success: false }, { status: 500 });
+  // H2: Increment counter atomically before bcrypt to prevent race-condition bypass
+  const updated = await attempts.findOneAndUpdate(
+    { ip },
+    {
+      $inc: { attempts: 1 },
+      $set: { ip, lastAttempt: new Date() },
+    },
+    { upsert: true, returnDocument: "after" }
+  );
+  const newCount = updated?.attempts ?? 1;
 
-  const a = Buffer.from(password ?? "");
-  const b = Buffer.from(stored);
-  const match = a.length === b.length && timingSafeEqual(a, b);
+  // Lock if threshold exceeded
+  if (newCount >= MAX_ATTEMPTS) {
+    await attempts.updateOne(
+      { ip, lockUntil: { $exists: false } },
+      { $set: { lockUntil: new Date(Date.now() + LOCK_DURATION_MS) } }
+    );
+    console.warn(`[auth] IP ${ip} locked after ${MAX_ATTEMPTS} failed attempts`);
+    return NextResponse.json(
+      { error: `Too many attempts. Try again in 15 minutes.` },
+      { status: 429 }
+    );
+  }
 
-  return match
-    ? NextResponse.json({ success: true })
-    : NextResponse.json({ success: false }, { status: 401 });
+  const match = await bcrypt.compare(password ?? "", hash);
+
+  if (!match) {
+    return NextResponse.json({ success: false }, { status: 401 });
+  }
+
+  // Success — clear failed attempts
+  await attempts.deleteOne({ ip });
+
+  const jti = randomUUID();
+  const token = await signAdminToken(jti);
+  const isProd = process.env.NODE_ENV === "production";
+
+  const res = NextResponse.json({ success: true });
+  res.cookies.set(COOKIE_NAME, token, {
+    httpOnly: true,
+    sameSite: "strict",
+    secure: isProd,
+    path: "/",
+    maxAge: TTL_SECONDS,
+  });
+  return res;
 }

@@ -176,6 +176,7 @@ export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
   const [loginError, setLoginError] = useState(false);
+  const [loginAttempts, setLoginAttempts] = useState<{ count: number; max: number } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState<"appointments" | "reservations" | "inventory" | "lcd-stock" | "customers">("appointments");
   const [appointments, setAppointments] = useState<AppointmentEntry[]>([]);
@@ -220,23 +221,84 @@ export default function AdminPage() {
   const [editingLcd, setEditingLcd] = useState<LcdItem | null>(null);
   const [confirmDeleteLcdId, setConfirmDeleteLcdId] = useState<number | null>(null);
 
+  const adminFetch = async (
+    input: string,
+    init?: RequestInit
+  ): Promise<Response | null> => {
+    const method = (init?.method ?? "GET").toUpperCase();
+    const isMutation = ["POST", "PATCH", "PUT", "DELETE"].includes(method);
+
+    const res = await fetch(input, {
+      ...init,
+      headers: {
+        ...(init?.headers ?? {}),
+        ...(isMutation ? { "X-Requested-With": "XMLHttpRequest" } : {}),
+      },
+    });
+
+    if (res.status === 401) {
+      sessionStorage.removeItem("azerotech_admin_authed");
+      setIsAuthenticated(false);
+      return null;
+    }
+
+    return res;
+  };
+
   useEffect(() => {
     const authed = sessionStorage.getItem("azerotech_admin_authed") === "true";
-    if (authed) {
-      setIsAuthenticated(true);
-      setLoading(true);
-    }
+    if (!authed) return;
+    // M5: Verify the httpOnly cookie is still valid before granting UI access
+    setLoading(true);
+    fetch("/api/appointments")
+      .then((res) => {
+        if (res.status === 401) {
+          sessionStorage.removeItem("azerotech_admin_authed");
+          setLoading(false);
+        } else {
+          setIsAuthenticated(true);
+        }
+      })
+      .catch(() => {
+        sessionStorage.removeItem("azerotech_admin_authed");
+        setLoading(false);
+      });
   }, []);
 
   useEffect(() => {
     if (!isAuthenticated) return;
+    const REFRESH_INTERVAL_MS = 50 * 60 * 1000;
+    const timer = setInterval(async () => {
+      const res = await fetch("/api/admin/refresh", {
+        method: "POST",
+        headers: { "X-Requested-With": "XMLHttpRequest" },
+      });
+      if (res.status === 401) {
+        sessionStorage.removeItem("azerotech_admin_authed");
+        setIsAuthenticated(false);
+      }
+    }, REFRESH_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
     Promise.all([
-      fetch("/api/appointments").then((r) => r.json()),
-      fetch("/api/reservations").then((r) => r.json()),
-      fetch("/api/products").then((r) => r.json()),
-      fetch("/api/customers").then((r) => r.json()),
-      fetch("/api/lcd-stock").then((r) => r.json()),
-    ]).then(async ([appts, resrvs, prods, custs, lcds]) => {
+      fetch("/api/appointments"),
+      fetch("/api/reservations"),
+      fetch("/api/products"),
+      fetch("/api/customers"),
+      fetch("/api/lcd-stock"),
+    ]).then(async (responses) => {
+      if (responses.some((r) => r.status === 401)) {
+        sessionStorage.removeItem("azerotech_admin_authed");
+        setIsAuthenticated(false);
+        setLoading(false);
+        return;
+      }
+      const [appts, resrvs, prods, custs, lcds] = await Promise.all(
+        responses.map((r) => r.json())
+      );
       const apptList = appts as AppointmentEntry[];
       const resvList = resrvs as ReservationEntry[];
       setAppointments(apptList);
@@ -251,9 +313,11 @@ export default function AdminPage() {
           const cid = c._id.toString();
           let serviceRecords: ServiceRecord[] = [];
           try {
-            const res = await fetch(`/api/customers/${cid}/records`);
-            const raw = (await res.json()) as (Omit<ServiceRecord, "id"> & { _id: string })[];
-            serviceRecords = raw.map((r) => ({ ...r, id: r._id.toString() }));
+            const res = await adminFetch(`/api/customers/${cid}/records`);
+            if (res) {
+              const raw = (await res.json()) as (Omit<ServiceRecord, "id"> & { _id: string })[];
+              serviceRecords = raw.map((r) => ({ ...r, id: r._id.toString() }));
+            }
           } catch {}
           const cAppts = apptList.filter((a) => a.customerId === cid);
           const cResvs = resvList.filter((r) => r.customerId === cid);
@@ -269,6 +333,7 @@ export default function AdminPage() {
       setCustomers(withRecords);
       setLoading(false);
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, refreshKey]);
 
   const loadData = () => setRefreshKey((k) => k + 1);
@@ -276,7 +341,7 @@ export default function AdminPage() {
   const updateLcdStock = async (id: number, newStock: number) => {
     if (newStock < 0) return;
     setLcdItems((prev) => prev.map((item) => item.id === id ? { ...item, stock: newStock } : item));
-    await fetch(`/api/lcd-stock/${id}`, {
+    await adminFetch(`/api/lcd-stock/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ stock: newStock }),
@@ -284,11 +349,12 @@ export default function AdminPage() {
   };
 
   const addLcdItem = async (name: string, stock: number) => {
-    const res = await fetch("/api/lcd-stock", {
+    const res = await adminFetch("/api/lcd-stock", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, stock }),
     });
+    if (!res) return;
     const newItem = await res.json() as LcdItem;
     setLcdItems((prev) => [...prev, newItem]);
     setShowAddLcdModal(false);
@@ -296,7 +362,7 @@ export default function AdminPage() {
 
   const editLcdName = async (id: number, name: string) => {
     setLcdItems((prev) => prev.map((item) => item.id === id ? { ...item, name: name.trim() } : item));
-    await fetch(`/api/lcd-stock/${id}`, {
+    await adminFetch(`/api/lcd-stock/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: name.trim() }),
@@ -306,7 +372,7 @@ export default function AdminPage() {
 
   const deleteLcdItem = async (id: number) => {
     setLcdItems((prev) => prev.filter((item) => item.id !== id));
-    await fetch(`/api/lcd-stock/${id}`, { method: "DELETE" });
+    await adminFetch(`/api/lcd-stock/${id}`, { method: "DELETE" });
     setConfirmDeleteLcdId(null);
   };
 
@@ -316,7 +382,10 @@ export default function AdminPage() {
     try {
       const res = await fetch("/api/admin/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
         body: JSON.stringify({ password: passwordInput }),
       });
       if (res.ok) {
@@ -324,6 +393,7 @@ export default function AdminPage() {
         setLoading(true);
         setIsAuthenticated(true);
         setLoginError(false);
+        setLoginAttempts(null);
       } else {
         setLoginError(true);
       }
@@ -334,7 +404,11 @@ export default function AdminPage() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await fetch("/api/admin/logout", {
+      method: "POST",
+      headers: { "X-Requested-With": "XMLHttpRequest" },
+    });
     sessionStorage.removeItem("azerotech_admin_authed");
     setIsAuthenticated(false);
     setPasswordInput("");
@@ -343,7 +417,7 @@ export default function AdminPage() {
 
   const updateAppointmentStatus = (id: string, status: EntryStatus) => {
     setAppointments((prev) => prev.map((e) => (e.id === id ? { ...e, status } : e)));
-    fetch(`/api/appointments/${id}`, {
+    adminFetch(`/api/appointments/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
@@ -353,7 +427,7 @@ export default function AdminPage() {
   const updateReservationFull = async (id: string, data: Partial<ReservationEntry>) => {
     setReservations((prev) => prev.map((r) => (r.id === id ? { ...r, ...data } : r)));
     setEditingRes(null);
-    await fetch(`/api/reservations/${id}`, {
+    await adminFetch(`/api/reservations/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -363,7 +437,7 @@ export default function AdminPage() {
   const updateAppointmentFull = async (id: string, data: Partial<AppointmentEntry>) => {
     setAppointments((prev) => prev.map((a) => (a.id === id ? { ...a, ...data } : a)));
     setEditingAppt(null);
-    await fetch(`/api/appointments/${id}`, {
+    await adminFetch(`/api/appointments/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -372,20 +446,21 @@ export default function AdminPage() {
 
   const deleteAppointment = (id: string) => {
     setAppointments((prev) => prev.filter((a) => a.id !== id));
-    fetch(`/api/appointments/${id}`, { method: "DELETE" });
+    adminFetch(`/api/appointments/${id}`, { method: "DELETE" });
   };
 
   const deleteReservation = (id: string) => {
     setReservations((prev) => prev.filter((r) => r.id !== id));
-    fetch(`/api/reservations/${id}`, { method: "DELETE" });
+    adminFetch(`/api/reservations/${id}`, { method: "DELETE" });
   };
 
   const addCustomer = async (name: string, phone: string) => {
-    const res = await fetch("/api/customers", {
+    const res = await adminFetch("/api/customers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, phone, type: "walk-in" }),
     });
+    if (!res) return;
     if (res.ok) {
       setAddingCustomer(false);
       loadData();
@@ -396,7 +471,7 @@ export default function AdminPage() {
   };
 
   const editCustomer = async (id: string, data: { name?: string; phone?: string }) => {
-    await fetch(`/api/customers/${id}`, {
+    await adminFetch(`/api/customers/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -406,7 +481,7 @@ export default function AdminPage() {
   };
 
   const dismissMismatches = async (id: string) => {
-    await fetch(`/api/customers/${id}`, {
+    await adminFetch(`/api/customers/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ dismissMismatches: true }),
@@ -415,7 +490,7 @@ export default function AdminPage() {
   };
 
   const deleteCustomer = async (id: string) => {
-    await fetch(`/api/customers/${id}`, { method: "DELETE" });
+    await adminFetch(`/api/customers/${id}`, { method: "DELETE" });
     setConfirmDeleteCustomerId(null);
     loadData();
   };
@@ -424,7 +499,7 @@ export default function AdminPage() {
     customerId: string,
     data: { date: string; service: string; device: string; cost: number; notes: string }
   ) => {
-    await fetch(`/api/customers/${customerId}/records`, {
+    await adminFetch(`/api/customers/${customerId}/records`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -434,14 +509,14 @@ export default function AdminPage() {
   };
 
   const deleteServiceRecord = async (customerId: string, recordId: string) => {
-    await fetch(`/api/customers/${customerId}/records/${recordId}`, { method: "DELETE" });
+    await adminFetch(`/api/customers/${customerId}/records/${recordId}`, { method: "DELETE" });
     loadData();
   };
 
   const updateReservationStatus = (id: string, status: EntryStatus) => {
     const reservation = reservations.find((r) => r.id === id);
     setReservations((prev) => prev.map((e) => (e.id === id ? { ...e, status } : e)));
-    fetch(`/api/reservations/${id}`, {
+    adminFetch(`/api/reservations/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
@@ -472,7 +547,7 @@ export default function AdminPage() {
     setProducts((prev) =>
       prev.map((p) => (p.id === productId ? { ...p, stock: newStock } : p))
     );
-    fetch(`/api/products/${productId}`, {
+    adminFetch(`/api/products/${productId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ stock: newStock }),
@@ -480,7 +555,7 @@ export default function AdminPage() {
   };
 
   const addProduct = async (data: { name: string; price: string; category: string; image: string; stock: number }) => {
-    await fetch("/api/products", {
+    await adminFetch("/api/products", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -490,7 +565,7 @@ export default function AdminPage() {
   };
 
   const editProductInfo = async (id: number, data: { name: string; price: string; category: string; image: string }) => {
-    await fetch(`/api/products/${id}`, {
+    await adminFetch(`/api/products/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -500,7 +575,7 @@ export default function AdminPage() {
   };
 
   const deleteProduct = async (id: number) => {
-    await fetch(`/api/products/${id}`, { method: "DELETE" });
+    await adminFetch(`/api/products/${id}`, { method: "DELETE" });
     setConfirmDeleteId(null);
     loadData();
   };
@@ -559,6 +634,11 @@ export default function AdminPage() {
               {loginError && (
                 <p className="text-sm mt-1.5 font-medium" style={{ color: "#EF4444" }}>
                   Incorrect password. Try again.
+                  {loginAttempts && (
+                    <span className="ml-1 opacity-75">
+                      ({loginAttempts.count}/{loginAttempts.max} attempts)
+                    </span>
+                  )}
                 </p>
               )}
             </div>
@@ -626,7 +706,7 @@ export default function AdminPage() {
               <span className="hidden sm:inline">Refresh</span>
             </button>
             <button
-              onClick={handleLogout}
+              onClick={() => void handleLogout()}
               className="flex items-center gap-1.5 text-slate-400 hover:text-white transition-colors text-sm font-medium px-3 py-2 rounded-lg hover:bg-white/5"
             >
               <LogOut className="w-4 h-4" />

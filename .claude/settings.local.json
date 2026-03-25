@@ -7,7 +7,9 @@
       "Bash(npx eslint app/admin/page.tsx)",
       "Bash(grep:*)",
       "Bash(npx tsc:*)",
-      "Skill(update-config)"
+      "Skill(update-config)",
+      "Bash(node:*)",
+      "Bash(npx next:*)"
     ]
   },
   "enabledPlugins": {

@@ -2,6 +2,13 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Security Work
+
+**`SECURITY_PROGRESS.md`** tracks all pentest findings and fix status. When doing any security-related work:
+- **Read it first** to understand current state before touching anything
+- **Update it immediately** after every fix (status, notes, sessions log)
+- Never mark something fixed without verifying the code change is actually in place
+
 ## Commands
 
 ```bash
@@ -54,10 +61,13 @@ All routes are under `app/api/`. There is currently no authentication middleware
 
 **File:** `lib/mongodb.ts` — lazy-loading `MongoClient` singleton. In development, reuses global connection to avoid hot-reload exhaustion. Reads `MONGODB_URI` from environment.
 
-**Environment variable required:**
+**Environment variables required:**
 ```
 MONGODB_URI=mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/azerotech
+JWT_SECRET=<32-byte base64 string>
+ADMIN_PASSWORD_HASH=<bcrypt hash of admin password, cost 12>
 ```
+Generate: `node -e "const b=require('bcryptjs');console.log(b.hashSync('YOUR_PASSWORD',12))"`
 
 **Collections in `azerotech` database:**
 
@@ -69,10 +79,12 @@ MONGODB_URI=mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/azerotech
 | `lcd_stock` | `id` (numeric, auto-increment), `name`, `stock` |
 | `customers` | `_id` (ObjectId), `name`, `phone` (unique), `type`, `nameMismatches[]`, `createdAt` |
 | `serviceRecords` | `_id`, `customerId`, `date`, `service`, `device`, `cost`, `notes`, `createdAt` |
+| `revoked_sessions` | `jti`, `expiresAt` (TTL index), `revokedAt` — auto-deleted after token expiry |
+| `login_attempts` | `ip`, `attempts`, `lastAttempt`, `lockUntil?` — auto-cleared after 24h inactivity |
 
 ## Admin Panel (`/admin`)
 
-**Authentication:** Password is read from `process.env.ADMIN_PASSWORD` via `app/api/admin/login/route.ts` (uses `timingSafeEqual` for secure comparison). Session stored in `sessionStorage` under key `azerotech_admin_authed`. There is no server-side session — the API routes themselves have no auth checks.
+**Authentication:** Login issues an `httpOnly` JWT cookie (`azerotech_admin_token`, 1h TTL, SameSite=Strict) signed with `JWT_SECRET`. Password is verified via bcrypt against `ADMIN_PASSWORD_HASH`. Rate limiting (5 attempts → 15 min lockout) uses the `login_attempts` MongoDB collection. Logout revokes the JTI in `revoked_sessions`. A silent refresh fires every 50 min via `/api/admin/refresh`. Session state is also mirrored in `sessionStorage` key `azerotech_admin_authed` for the UI. All protected API routes call `requireAdmin()` (`lib/requireAdmin.ts`) which checks the cookie, verifies the JWT, and checks the revocation list. Mutation requests also require the `X-Requested-With: XMLHttpRequest` header (CSRF defense). New libs: `lib/auth.ts` (JWT helpers), `lib/requireAdmin.ts` (server-side auth guard).
 
 **Tabs:** Appointments · Reservations · Inventory (Products) · LCD Stock · Customers
 
