@@ -68,6 +68,7 @@ interface AppointmentEntry {
   brand: string;
   deviceType: string;
   problem?: string;
+  repairStage?: string | null;
 }
 
 interface ReservationEntry {
@@ -2067,6 +2068,7 @@ function AppointmentEditModal({
   const [brand, setBrand] = useState(appt.brand);
   const [deviceType, setDeviceType] = useState(appt.deviceType);
   const [problem, setProblem] = useState(appt.problem ?? "");
+  const [repairStage, setRepairStage] = useState<string>(appt.repairStage ?? "");
 
   const inputStyle: React.CSSProperties = {
     background: "rgba(255,255,255,0.06)",
@@ -2075,7 +2077,7 @@ function AppointmentEditModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({ name, phone, service, date, time, brand, deviceType, problem: problem || undefined });
+    onSave({ name, phone, service, date, time, brand, deviceType, problem: problem || undefined, repairStage: repairStage || null });
   };
 
   const ease2 = [0.22, 1, 0.36, 1] as [number, number, number, number];
@@ -2210,6 +2212,24 @@ function AppointmentEditModal({
               className="w-full px-4 py-3 rounded-xl text-sm text-white focus:outline-none resize-none"
               style={inputStyle}
             />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+              Repair Stage <span className="normal-case font-normal text-slate-600">(optional)</span>
+            </label>
+            <select
+              value={repairStage}
+              onChange={(e) => setRepairStage(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl text-sm text-white focus:outline-none"
+              style={inputStyle}
+            >
+              <option value="" style={{ background: "#0F1535" }}>— Not set —</option>
+              <option value="Device Received" style={{ background: "#0F1535" }}>Device Received</option>
+              <option value="Waiting for Parts" style={{ background: "#0F1535" }}>Waiting for Parts</option>
+              <option value="Fixing" style={{ background: "#0F1535" }}>Fixing</option>
+              <option value="Ready for Pickup" style={{ background: "#0F1535" }}>Ready for Pickup</option>
+            </select>
           </div>
 
           <div className="flex gap-3 pt-2">
