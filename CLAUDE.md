@@ -82,7 +82,7 @@ Generate: `node -e "const b=require('bcryptjs');console.log(b.hashSync('YOUR_PAS
 
 | Collection | Key Fields |
 |------------|-----------|
-| `appointments` | `id` (UUID), `appointmentId` (AZT-…), `customerId`, `status`, `date`, `time`, `service`, `name`, `phone`, `brand`, `deviceType`, `problem?` |
+| `appointments` | `id` (UUID), `appointmentId` (AZT-…), `customerId`, `status`, `date`, `time`, `service`, `name`, `phone`, `brand`, `deviceType`, `problem?`, `repairStage?` |
 | `reservations` | `id` (UUID), `customerId`, `status`, `pickupDate`, `pickupTime`, `productName`, `productPrice`, `productId?` (numeric, for stock lookup) |
 | `products` | `id` (numeric, auto-increment), `name`, `price`, `category`, `image`, `stock` |
 | `lcd_stock` | `id` (numeric, auto-increment), `name`, `stock` |
