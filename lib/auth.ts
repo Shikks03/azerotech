@@ -8,6 +8,8 @@ const TTL_SECONDS = 60 * 60; // 1 hour
 function getSecret(): Uint8Array {
   const secret = process.env.JWT_SECRET;
   if (!secret) throw new Error("JWT_SECRET is not set");
+  // S9-M8: Enforce minimum 32-character secret for HS256 security
+  if (secret.length < 32) throw new Error("JWT_SECRET must be at least 32 characters");
   return new TextEncoder().encode(secret);
 }
 

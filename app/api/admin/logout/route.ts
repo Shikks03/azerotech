@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
   res.cookies.set(COOKIE_NAME, "", {
     httpOnly: true,
     sameSite: "strict",
-    secure: process.env.NODE_ENV === "production",
+    secure: true,
     path: "/",
     maxAge: 0,
   });

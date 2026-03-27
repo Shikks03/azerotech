@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
   const { name, phone } = body;
-  if (!name || !phone) {
+  if (typeof name !== "string" || name.trim().length === 0 || name.length > 100 || !phone) {
     return NextResponse.json({ error: "name and phone are required" }, { status: 400 });
   }
   const client = await clientPromise;
@@ -43,10 +43,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Customer with this phone already exists" }, { status: 409 });
   }
 
+  // S5-5: Validate type against allowlist
+  const VALID_TYPES = ["walk-in", "appointment", "reservation"];
+  const customerType = body.type ?? "walk-in";
+  if (!VALID_TYPES.includes(customerType)) {
+    return NextResponse.json({ error: "Invalid type" }, { status: 400 });
+  }
+
   const doc = {
     name: name.trim(),
     phone,
-    type: body.type ?? "walk-in",
+    type: customerType,
     nameMismatches: [],
     createdAt: new Date().toISOString(),
   };

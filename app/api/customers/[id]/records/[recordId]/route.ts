@@ -23,6 +23,10 @@ export async function DELETE(
   }
 
   // M3: Include customerId in filter to prevent IDOR (a record can only be deleted by its owner's customer route)
-  await client.db(DB).collection("serviceRecords").deleteOne({ _id: oid, customerId: id });
+  // S8-9: Check deletedCount — returns 404 if record not found or belongs to a different customer
+  const result = await client.db(DB).collection("serviceRecords").deleteOne({ _id: oid, customerId: id });
+  if (result.deletedCount === 0) {
+    return NextResponse.json({ error: "Service record not found" }, { status: 404 });
+  }
   return NextResponse.json({ ok: true });
 }

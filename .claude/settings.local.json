@@ -9,7 +9,9 @@
       "Bash(npx tsc:*)",
       "Skill(update-config)",
       "Bash(node:*)",
-      "Bash(npx next:*)"
+      "Bash(npx next:*)",
+      "Bash(C:/Users/Shikks/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.5/scripts/start-server.sh --project-dir C:/Users/Shikks/Projects/azerotech)",
+      "Bash(ls -la /c/Users/Shikks/Projects/azerotech/lib/*.ts)"
     ]
   },
   "enabledPlugins": {

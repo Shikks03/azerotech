@@ -4,10 +4,16 @@ import { MongoServerError } from "mongodb";
 import { requireAdmin } from "@/lib/requireAdmin";
 import { signAdminToken, getTokenFromRequest, verifyAdminToken, COOKIE_NAME, TTL_SECONDS } from "@/lib/auth";
 import clientPromise from "@/lib/mongodb";
+import { ensureIndexes } from "@/lib/ensureIndexes";
 
 const DB = "azerotech";
 
 export async function POST(req: NextRequest) {
+  // B-1: CSRF defense — must carry custom header (same check as login/logout)
+  if (req.headers.get("X-Requested-With") !== "XMLHttpRequest") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const authError = await requireAdmin(req);
   if (authError) return authError;
 
@@ -18,8 +24,8 @@ export async function POST(req: NextRequest) {
     const oldPayload = await verifyAdminToken(oldToken);
     if (oldPayload?.jti) {
       const client = await clientPromise;
-      // Ensure unique index exists (idempotent)
-      await client.db(DB).collection("revoked_sessions").createIndex({ jti: 1 }, { unique: true });
+      // S9-M5: Indexes ensured once at startup, not on every request
+      await ensureIndexes(client.db(DB));
       try {
         await client.db(DB).collection("revoked_sessions").insertOne({
           jti: oldPayload.jti,
@@ -38,13 +44,12 @@ export async function POST(req: NextRequest) {
 
   const jti = randomUUID();
   const token = await signAdminToken(jti);
-  const isProd = process.env.NODE_ENV === "production";
 
   const res = NextResponse.json({ success: true });
   res.cookies.set(COOKIE_NAME, token, {
     httpOnly: true,
     sameSite: "strict",
-    secure: isProd,
+    secure: true,
     path: "/",
     maxAge: TTL_SECONDS,
   });

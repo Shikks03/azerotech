@@ -4,6 +4,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Analytics } from "@vercel/analytics/next";
+import { headers } from "next/headers";
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
@@ -24,18 +25,20 @@ export const metadata: Metadata = {
     "phone repair, laptop repair, reformat, accessories, repair shop",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   return (
     <html lang="en">
       <body className={spaceGrotesk.variable}>
         <Header />
         <main>{children}</main>
         <Footer />
-        <Analytics />
+        <Analytics nonce={nonce} />
       </body>
     </html>
   );

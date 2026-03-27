@@ -20,9 +20,9 @@ export async function GET(req: NextRequest) {
   const client = await clientPromise;
   const db = client.db(DB);
 
-  // Rate limit public lookups
+  // S5-9/S8-2: Rate limit all IPs — unknown IPs share a bucket (acceptable; S8-3 enumeration mitigated by rate limit)
   const ip = getClientIp(req);
-  if (await isPublicRateLimited(db, ip)) {
+  if (await isPublicRateLimited(db, ip, "repair-status")) {
     return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 });
   }
 
@@ -33,6 +33,11 @@ export async function GET(req: NextRequest) {
   // Require at least one param
   if (!appointmentId && !phone) {
     return NextResponse.json({ error: "Provide appointmentId or phone" }, { status: 400 });
+  }
+
+  // Validate appointmentId format if provided
+  if (appointmentId && !/^AZT-\d{6}-[0-9a-f]{6}$/i.test(appointmentId)) {
+    return NextResponse.json({ error: "Invalid appointmentId format" }, { status: 400 });
   }
 
   // Validate phone format if provided (and no appointmentId)

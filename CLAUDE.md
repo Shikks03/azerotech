@@ -112,6 +112,40 @@ Button utility classes defined in `globals.css`: `.btn`, `.btn-primary`, `.btn-s
 
 Animations use the `motion` library with `whileInView` + fade-up pattern: `initial: { opacity: 0, y: 28 }` → `animate: { opacity: 1, y: 0 }`, easing `[0.22, 1, 0.36, 1]`.
 
+## Validation Rules
+
+### Request Body Size
+
+All `/api/*` routes are covered by `middleware.ts`, which rejects requests with `Content-Length > 8192` bytes (8 KB) and returns `413 Request body too large`. This limit comfortably covers the largest valid payload (service record with 2000-char notes + all other fields).
+
+### String Length Limits
+
+These limits are enforced server-side on every route that accepts the field — both POST (create) and PATCH (update):
+
+| Field | Max length | Applies to |
+|-------|-----------|-----------|
+| `name` (person) | 100 | appointments, reservations, customers |
+| `time` / `pickupTime` | 20 | appointments, reservations |
+| `service` | 100 | appointments |
+| `brand` | 100 | appointments |
+| `deviceType` | 100 | appointments |
+| `category` | 100 | products |
+| `problem` | 1000 | appointments |
+| `productName` | 200 | reservations |
+| product / lcd `name` | 200 | products, lcd-stock |
+| `image` (URL) | 500 | products |
+| service record `service` / `device` | 200 | service records |
+| `notes` | 2000 | service records |
+
+### Enum / Format Constraints
+
+- **`phone`** — `^09\d{9}$` (Philippine format). Validated on all public POST and admin PATCH routes that accept phone.
+- **Appointment `status`** — `Pending | Confirmed | Completed | Cancelled`
+- **Appointment `repairStage`** — `Device Received | Waiting for Parts | Fixing | Ready for Pickup | null`
+- **Reservation `status`** — `Pending | Confirmed | Completed | Cancelled`
+- **Customer `type`** — `walk-in | appointment | reservation`
+- **`date` / `pickupDate`** — `YYYY-MM-DD` format. Appointments: 1–60 days from today (server-enforced). Reservations: 1–180 days (client-enforced only).
+
 ## Key Notes
 
 - Phone validation enforces Philippine format: `09XXXXXXXXX` (11 digits starting with `09`). Validated both client-side and server-side on all public POST and admin PATCH routes.

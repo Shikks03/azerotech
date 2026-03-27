@@ -3,19 +3,16 @@ import { getTokenFromRequest, verifyAdminToken } from "./auth";
 import clientPromise from "./mongodb";
 
 const DB = "azerotech";
-// Methods that mutate state — require X-Requested-With CSRF header
-const MUTATION_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"]);
 
 export async function requireAdmin(
   req: NextRequest
 ): Promise<NextResponse | null> {
-  // CSRF: mutation requests must carry custom header.
+  // CSRF: all requests must carry custom header (GET included, to prevent
+  // data leakage via cross-origin <img>/<script> tags).
   // SameSite=Strict blocks cross-site cookie sending; this is defense-in-depth.
-  if (MUTATION_METHODS.has(req.method)) {
-    const xrw = req.headers.get("X-Requested-With");
-    if (xrw !== "XMLHttpRequest") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+  const xrw = req.headers.get("X-Requested-With");
+  if (xrw !== "XMLHttpRequest") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const token = getTokenFromRequest(req);

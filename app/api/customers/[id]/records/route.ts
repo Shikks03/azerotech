@@ -14,6 +14,9 @@ export async function GET(
   if (authError) return authError;
 
   const { id } = await params;
+  if (!/^[a-f\d]{24}$/i.test(id)) {
+    return NextResponse.json({ error: "Invalid customer ID" }, { status: 400 });
+  }
   const client = await clientPromise;
   const docs = await client
     .db(DB)

@@ -13,13 +13,21 @@ function getClientPromise(): Promise<MongoClient> {
 
   if (process.env.NODE_ENV === "development") {
     if (!global._mongoClientPromise) {
-      global._mongoClientPromise = new MongoClient(uri).connect();
+      global._mongoClientPromise = new MongoClient(uri, {
+        tls: true,
+        serverSelectionTimeoutMS: 5000,
+        maxPoolSize: 10,
+      }).connect();
     }
     return global._mongoClientPromise;
   }
 
   if (!_prodClientPromise) {
-    _prodClientPromise = new MongoClient(uri).connect();
+    _prodClientPromise = new MongoClient(uri, {
+      tls: true,
+      serverSelectionTimeoutMS: 5000,
+      maxPoolSize: 10,
+    }).connect();
   }
   return _prodClientPromise;
 }

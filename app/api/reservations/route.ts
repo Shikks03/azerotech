@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { MongoServerError } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import { requireAdmin } from "@/lib/requireAdmin";
 import { getClientIp, isPublicRateLimited } from "@/lib/publicRateLimit";
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
   const client = await clientPromise;
   const db = client.db(DB);
-  if (await isPublicRateLimited(db, ip)) {
+  if (await isPublicRateLimited(db, ip, "reservations")) {
     return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 });
   }
 
@@ -70,6 +71,29 @@ export async function POST(req: NextRequest) {
   if (productPrice == null || !isFinite(parsedPrice) || parsedPrice < 0) {
     return NextResponse.json({ error: "Invalid product price" }, { status: 400 });
   }
+  // S9-L8: Reject astronomically large values — cap at ₱1,000,000
+  if (parsedPrice > 1_000_000) {
+    return NextResponse.json({ error: "Invalid productPrice" }, { status: 400 });
+  }
+
+  // S5-7: Validate pickupDate is a real calendar date within 1–180 days server-side
+  const [pdYear, pdMonth, pdDay] = (pickupDate as string).split("-").map(Number);
+  const parsedPickupDate = new Date(`${pickupDate}T00:00:00`);
+  if (
+    isNaN(parsedPickupDate.getTime()) ||
+    parsedPickupDate.getFullYear() !== pdYear ||
+    parsedPickupDate.getMonth() + 1 !== pdMonth ||
+    parsedPickupDate.getDate() !== pdDay
+  ) {
+    return NextResponse.json({ error: "Invalid pickup date" }, { status: 400 });
+  }
+  const todayRes = new Date();
+  todayRes.setHours(0, 0, 0, 0);
+  const minPickup = new Date(todayRes); minPickup.setDate(todayRes.getDate() + 1);
+  const maxPickup = new Date(todayRes); maxPickup.setDate(todayRes.getDate() + 180);
+  if (parsedPickupDate < minPickup || parsedPickupDate > maxPickup) {
+    return NextResponse.json({ error: "Pickup date must be 1–180 days from today" }, { status: 400 });
+  }
 
   const now = new Date();
 
@@ -94,14 +118,28 @@ export async function POST(req: NextRequest) {
       );
     }
   } else {
-    const result = await db.collection("customers").insertOne({
-      name: submittedName,
-      phone,
-      type: "reservation",
-      nameMismatches: [],
-      createdAt: now.toISOString(),
-    });
-    customerId = result.insertedId.toString();
+    // S9-L6: Wrap insertOne to handle E11000 from concurrent same-phone requests
+    try {
+      const result = await db.collection("customers").insertOne({
+        name: submittedName,
+        phone,
+        type: "reservation",
+        nameMismatches: [],
+        createdAt: now.toISOString(),
+      });
+      customerId = result.insertedId.toString();
+    } catch (err) {
+      if (err instanceof MongoServerError && err.code === 11000) {
+        // Race: another concurrent request created this customer between our findOne and insertOne
+        const raceCustomer = await db.collection("customers").findOne({ phone });
+        if (!raceCustomer) {
+          return NextResponse.json({ error: "Failed to create customer" }, { status: 500 });
+        }
+        customerId = raceCustomer._id.toString();
+      } else {
+        throw err;
+      }
+    }
   }
 
   const doc = {

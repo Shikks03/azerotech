@@ -234,7 +234,7 @@ export default function AdminPage() {
       ...init,
       headers: {
         ...(init?.headers ?? {}),
-        ...(isMutation ? { "X-Requested-With": "XMLHttpRequest" } : {}),
+        "X-Requested-With": "XMLHttpRequest",
       },
     });
 
@@ -252,7 +252,7 @@ export default function AdminPage() {
     if (!authed) return;
     // M5: Verify the httpOnly cookie is still valid before granting UI access
     setLoading(true);
-    fetch("/api/appointments")
+    fetch("/api/admin/ping", { headers: { "X-Requested-With": "XMLHttpRequest" } })
       .then((res) => {
         if (res.status === 401) {
           sessionStorage.removeItem("azerotech_admin_authed");
@@ -269,8 +269,8 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    const REFRESH_INTERVAL_MS = 50 * 60 * 1000;
-    const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // expire session after 30 min idle (shorter than refresh interval so any 30+ min idle is caught within one interval fire)
+    const CHECK_INTERVAL_MS = 5 * 60 * 1000; // check every 5 min — must be shorter than IDLE_TIMEOUT_MS so idle users are caught promptly
+    const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // expire session after 30 min idle
     const timer = setInterval(async () => {
       const idleMs = Date.now() - lastActiveRef.current;
       if (idleMs >= IDLE_TIMEOUT_MS) {
@@ -287,7 +287,7 @@ export default function AdminPage() {
         sessionStorage.removeItem("azerotech_admin_authed");
         setIsAuthenticated(false);
       }
-    }, REFRESH_INTERVAL_MS);
+    }, CHECK_INTERVAL_MS);
     return () => clearInterval(timer);
   }, [isAuthenticated]);
 
@@ -305,12 +305,13 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!isAuthenticated) return;
+    const xrwHeaders = { headers: { "X-Requested-With": "XMLHttpRequest" } };
     Promise.all([
-      fetch("/api/appointments"),
-      fetch("/api/reservations"),
-      fetch("/api/products"),
-      fetch("/api/customers"),
-      fetch("/api/lcd-stock"),
+      fetch("/api/appointments", xrwHeaders),
+      fetch("/api/reservations", xrwHeaders),
+      fetch("/api/products", xrwHeaders),
+      fetch("/api/customers", xrwHeaders),
+      fetch("/api/lcd-stock", xrwHeaders),
     ]).then(async (responses) => {
       if (responses.some((r) => r.status === 401)) {
         sessionStorage.removeItem("azerotech_admin_authed");

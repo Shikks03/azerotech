@@ -46,13 +46,16 @@ export async function PATCH(
     update.phone = body.phone;
   }
   // Dismiss all mismatch warnings
-  if (body.dismissMismatches) update.nameMismatches = [];
+  if (body.dismissMismatches === true) update.nameMismatches = [];
 
   if (Object.keys(update).length === 0) {
     return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
   }
 
-  await db.collection("customers").updateOne(filter, { $set: update });
+  const result = await db.collection("customers").updateOne(filter, { $set: update });
+  if (result.matchedCount === 0) {
+    return NextResponse.json({ error: "Customer not found" }, { status: 404 });
+  }
   return NextResponse.json({ ok: true });
 }
 
@@ -74,11 +77,14 @@ export async function DELETE(
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   }
 
-  // Delete the customer and their service records
-  await db.collection("customers").deleteOne({ _id: oid });
-  await db.collection("serviceRecords").deleteMany({ customerId: id });
+  // S8-8: Check deletedCount before cascading — prevents cascade on non-existent customer
+  const deleteResult = await db.collection("customers").deleteOne({ _id: oid });
+  if (deleteResult.deletedCount === 0) {
+    return NextResponse.json({ error: "Customer not found" }, { status: 404 });
+  }
 
-  // Unlink appointments and reservations (set customerId to null)
+  // Delete service records and unlink appointments/reservations
+  await db.collection("serviceRecords").deleteMany({ customerId: id });
   await db.collection("appointments").updateMany({ customerId: id }, { $unset: { customerId: "" } });
   await db.collection("reservations").updateMany({ customerId: id }, { $unset: { customerId: "" } });
 
