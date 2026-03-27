@@ -111,6 +111,7 @@ export default function BookAppointment() {
   const [confirmed, setConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [confirmedId, setConfirmedId] = useState("");
+  const [submitError, setSubmitError] = useState("");
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [calMonth, setCalMonth] = useState(() => {
@@ -155,7 +156,8 @@ export default function BookAppointment() {
     setSlotsLoading(true);
     fetch(`/api/appointments/booked-slots?date=${isoDate}`)
       .then((r) => r.json())
-      .then(({ bookedTimes }) => setBookedSlots(bookedTimes))
+      .then(({ bookedTimes }) => setBookedSlots(bookedTimes ?? []))
+      .catch(() => setBookedSlots([]))
       .finally(() => setSlotsLoading(false));
   };
 
@@ -227,6 +229,7 @@ export default function BookAppointment() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    setSubmitError("");
     const newEntry: AppointmentEntry = {
       id: crypto.randomUUID(),
       type: "appointment",
@@ -241,15 +244,26 @@ export default function BookAppointment() {
       deviceType: formData.deviceType,
       ...(formData.problem ? { problem: formData.problem } : {}),
     };
-    const res = await fetch("/api/appointments", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newEntry),
-    });
-    const data = await res.json();
-    setConfirmedId(data.appointmentId ?? "");
-    setSubmitting(false);
-    setConfirmed(true);
+    try {
+      const res = await fetch("/api/appointments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newEntry),
+      });
+      let data: { appointmentId?: string; error?: string } = {};
+      try { data = await res.json(); } catch { /* empty body */ }
+      if (!res.ok) {
+        setSubmitError(data.error ?? "Something went wrong. Please try again.");
+        setSubmitting(false);
+        return;
+      }
+      setConfirmedId(data.appointmentId ?? "");
+      setSubmitting(false);
+      setConfirmed(true);
+    } catch {
+      setSubmitError("Network error. Please check your connection and try again.");
+      setSubmitting(false);
+    }
   };
 
   const formatDate = (iso: string) =>
@@ -833,6 +847,9 @@ export default function BookAppointment() {
                       {submitting ? "Submitting…" : <>Confirm Appointment <ArrowRight className="w-5 h-5 shrink-0" /></>}
                     </button>
                   </div>
+                  {submitError && (
+                    <p className="text-red-400 text-sm text-center mt-3">{submitError}</p>
+                  )}
                 </div>
               )}
 
