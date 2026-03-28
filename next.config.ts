@@ -13,9 +13,6 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  serverActions: {
-    allowedOrigins: ["azerotech.com"],
-  },
   images: {
     remotePatterns: [
       {
