@@ -59,3 +59,4 @@ Track new features, bugs, and problems for the AzeroTech project.
 | # | Problem | Description | Status |
 |---|---------|-------------|--------|
 | 1 | Security vulnerability audit | Review the entire site for common web vulnerabilities: input validation, API route authorization, XSS, injection, exposed secrets, insecure headers, and admin access controls. | `Todo` |
+| 2 | Merge review fixes (feature/api-auth → master) | Pre-merge code review found 14 issues: 2 security (S-I1: type-check order before attempt counter; S-I2: shared-NAT lockout bypass on success), 3 critical quality (Q-C1: indentation, Q-C2: duplicate getClientIp, Q-C3: silent loop exhaustion), 9 important quality (Q-I1: DB constant extraction to lib/db.ts, Q-I2: VALID_STATUSES to lib/constants.ts, Q-I3–Q-I9: various cleanup). All 14 fixed. Pentest verification pending before merge. | `In Progress` |

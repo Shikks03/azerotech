@@ -318,8 +318,8 @@ export default function AdminPage() {
       const [appts, resrvs, prods, custs, lcds] = await Promise.all(
         responses.map((r) => r.json())
       );
-      const apptList = appts as AppointmentEntry[];
-      const resvList = resrvs as ReservationEntry[];
+      const apptList = (appts as (AppointmentEntry & { _id: string })[]).map((a) => ({ ...a, id: a.id ?? a._id }));
+      const resvList = (resrvs as (ReservationEntry & { _id: string })[]).map((r) => ({ ...r, id: r.id ?? r._id }));
       setAppointments(apptList);
       setReservations(resvList);
       setProducts(prods as Product[]);
