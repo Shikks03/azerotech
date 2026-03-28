@@ -4,12 +4,9 @@ import { NextRequest, NextResponse } from "next/server";
 const BODY_SIZE_LIMIT = 8192;
 
 export async function middleware(req: NextRequest) {
-  // Generate a per-request nonce for CSP (S9-H1)
-  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
-
   const csp = [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' https://www.googletagmanager.com`,
+    `script-src 'self' 'unsafe-inline' https://www.googletagmanager.com`,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' https://images.unsplash.com",
@@ -21,10 +18,6 @@ export async function middleware(req: NextRequest) {
     "form-action 'self'",
     "worker-src 'none'",
   ].join("; ");
-
-  // Pass nonce downstream so layout/components can use it
-  const requestHeaders = new Headers(req.headers);
-  requestHeaders.set("x-nonce", nonce);
 
   // API-only: enforce body size limit (S9-M6: with 10s read timeout for chunked requests)
   if (req.nextUrl.pathname.startsWith("/api/")) {
@@ -54,9 +47,7 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  const response = NextResponse.next({
-    request: { headers: requestHeaders },
-  });
+  const response = NextResponse.next();
 
   response.headers.set("Content-Security-Policy", csp);
 
