@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 import { requireAdmin } from "@/lib/requireAdmin";
-
-const DB = "azerotech";
+import { DB } from "@/lib/db";
 
 export async function DELETE(
   req: NextRequest,

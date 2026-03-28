@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { MongoServerError } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import { requireAdmin } from "@/lib/requireAdmin";
-
-const DB = "azerotech";
+import { VALID_STATUSES } from "@/lib/constants";
+import { DB } from "@/lib/db";
 const COL = "appointments";
 
 export async function PATCH(
@@ -26,8 +27,7 @@ export async function PATCH(
   }
 
   // M6: Validate status against known enum
-  const VALID_STATUSES = ["Pending", "Confirmed", "Completed", "Cancelled"];
-  if ("status" in update && !VALID_STATUSES.includes(update.status as string)) {
+  if ("status" in update && !VALID_STATUSES.includes(update.status as never)) {
     return NextResponse.json({ error: "Invalid status" }, { status: 400 });
   }
 
@@ -88,12 +88,11 @@ export async function PATCH(
     }
     return NextResponse.json({ ok: true });
   } catch (err: unknown) {
-    const e = err as { code?: number; keyPattern?: Record<string, unknown> };
-    if (e.code === 11000) {
-      if (e.keyPattern && "date_1_time_1" in e.keyPattern) {
+    if (err instanceof MongoServerError && err.code === 11000) {
+      if (err.keyPattern && "date_1_time_1" in err.keyPattern) {
         return NextResponse.json({ error: "This slot is already booked" }, { status: 409 });
       }
-      if (e.keyPattern && "appointmentId_1" in e.keyPattern) {
+      if (err.keyPattern && "appointmentId_1" in err.keyPattern) {
         return NextResponse.json({ error: "Appointment ID conflict" }, { status: 409 });
       }
     }

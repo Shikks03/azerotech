@@ -3,8 +3,7 @@ import { MongoServerError } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import { requireAdmin } from "@/lib/requireAdmin";
 import { ensureIndexes } from "@/lib/ensureIndexes";
-
-const DB = "azerotech";
+import { DB } from "@/lib/db";
 const COL = "products";
 
 export async function GET(req: NextRequest) {
@@ -73,6 +72,9 @@ export async function POST(req: NextRequest) {
       if (err instanceof MongoServerError && err.code === 11000 && attempt < 4) continue;
       throw err;
     }
+  }
+  if (!newProduct) {
+    return NextResponse.json({ error: "Failed to create product after retries" }, { status: 500 });
   }
   return NextResponse.json(newProduct, { status: 201 });
 }

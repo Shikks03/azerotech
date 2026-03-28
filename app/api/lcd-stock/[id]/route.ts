@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { requireAdmin } from "@/lib/requireAdmin";
-
-const DB = "azerotech";
+import { DB } from "@/lib/db";
 const COL = "lcd_stock";
 
 export async function PATCH(

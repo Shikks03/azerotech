@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import { requireAdmin } from "@/lib/requireAdmin";
-
-const DB = "azerotech";
+import { VALID_STATUSES } from "@/lib/constants";
+import { DB } from "@/lib/db";
 const COL = "reservations";
 
 export async function PATCH(
@@ -35,8 +35,7 @@ export async function PATCH(
   }
 
   // M6: Validate status against known enum
-  const VALID_STATUSES = ["Pending", "Confirmed", "Completed", "Cancelled"];
-  if ("status" in update && !VALID_STATUSES.includes(update.status as string)) {
+  if ("status" in update && !VALID_STATUSES.includes(update.status as never)) {
     return NextResponse.json({ error: "Invalid status" }, { status: 400 });
   }
 

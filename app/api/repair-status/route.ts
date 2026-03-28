@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { getClientIp, isPublicRateLimited } from "@/lib/publicRateLimit";
-
-const DB = "azerotech";
+import { DB } from "@/lib/db";
 const COL = "appointments";
 
 const SAFE_PROJECTION = {

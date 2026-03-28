@@ -178,7 +178,6 @@ export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
   const [loginError, setLoginError] = useState(false);
-  const [loginAttempts, setLoginAttempts] = useState<{ count: number; max: number } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState<"appointments" | "reservations" | "inventory" | "lcd-stock" | "customers">("appointments");
   const [appointments, setAppointments] = useState<AppointmentEntry[]>([]);
@@ -227,9 +226,6 @@ export default function AdminPage() {
     input: string,
     init?: RequestInit
   ): Promise<Response | null> => {
-    const method = (init?.method ?? "GET").toUpperCase();
-    const isMutation = ["POST", "PATCH", "PUT", "DELETE"].includes(method);
-
     const res = await fetch(input, {
       ...init,
       headers: {
@@ -416,7 +412,6 @@ export default function AdminPage() {
         setLoading(true);
         setIsAuthenticated(true);
         setLoginError(false);
-        setLoginAttempts(null);
       } else {
         setLoginError(true);
       }
@@ -440,7 +435,7 @@ export default function AdminPage() {
 
   const updateAppointmentStatus = (id: string, status: EntryStatus) => {
     setAppointments((prev) => prev.map((e) => (e.id === id ? { ...e, status } : e)));
-    adminFetch(`/api/appointments/${id}`, {
+    void adminFetch(`/api/appointments/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
@@ -469,12 +464,12 @@ export default function AdminPage() {
 
   const deleteAppointment = (id: string) => {
     setAppointments((prev) => prev.filter((a) => a.id !== id));
-    adminFetch(`/api/appointments/${id}`, { method: "DELETE" });
+    void adminFetch(`/api/appointments/${id}`, { method: "DELETE" });
   };
 
   const deleteReservation = (id: string) => {
     setReservations((prev) => prev.filter((r) => r.id !== id));
-    adminFetch(`/api/reservations/${id}`, { method: "DELETE" });
+    void adminFetch(`/api/reservations/${id}`, { method: "DELETE" });
   };
 
   const addCustomer = async (name: string, phone: string) => {
@@ -539,7 +534,7 @@ export default function AdminPage() {
   const updateReservationStatus = (id: string, status: EntryStatus) => {
     const reservation = reservations.find((r) => r.id === id);
     setReservations((prev) => prev.map((e) => (e.id === id ? { ...e, status } : e)));
-    adminFetch(`/api/reservations/${id}`, {
+    void adminFetch(`/api/reservations/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
@@ -570,7 +565,7 @@ export default function AdminPage() {
     setProducts((prev) =>
       prev.map((p) => (p.id === productId ? { ...p, stock: newStock } : p))
     );
-    adminFetch(`/api/products/${productId}`, {
+    void adminFetch(`/api/products/${productId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ stock: newStock }),
@@ -657,11 +652,6 @@ export default function AdminPage() {
               {loginError && (
                 <p className="text-sm mt-1.5 font-medium" style={{ color: "#EF4444" }}>
                   Incorrect password. Try again.
-                  {loginAttempts && (
-                    <span className="ml-1 opacity-75">
-                      ({loginAttempts.count}/{loginAttempts.max} attempts)
-                    </span>
-                  )}
                 </p>
               )}
             </div>

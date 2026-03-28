@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTokenFromRequest, verifyAdminToken, COOKIE_NAME } from "@/lib/auth";
 import clientPromise from "@/lib/mongodb";
-
-const DB = "azerotech";
+import { DB } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
   // C4: CSRF defense — must carry custom header

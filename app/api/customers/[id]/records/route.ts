@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import { requireAdmin } from "@/lib/requireAdmin";
-
-const DB = "azerotech";
+import { DB } from "@/lib/db";
 const COL = "serviceRecords";
 
 export async function GET(

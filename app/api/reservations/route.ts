@@ -3,8 +3,7 @@ import { MongoServerError } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import { requireAdmin } from "@/lib/requireAdmin";
 import { getClientIp, isPublicRateLimited } from "@/lib/publicRateLimit";
-
-const DB = "azerotech";
+import { DB } from "@/lib/db";
 const COL = "reservations";
 
 export async function GET(req: NextRequest) {
@@ -87,10 +86,12 @@ export async function POST(req: NextRequest) {
   ) {
     return NextResponse.json({ error: "Invalid pickup date" }, { status: 400 });
   }
-  const todayRes = new Date();
-  todayRes.setHours(0, 0, 0, 0);
-  const minPickup = new Date(todayRes); minPickup.setDate(todayRes.getDate() + 1);
-  const maxPickup = new Date(todayRes); maxPickup.setDate(todayRes.getDate() + 180);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const minPickup = new Date(today);
+  minPickup.setDate(today.getDate() + 1);
+  const maxPickup = new Date(today);
+  maxPickup.setDate(today.getDate() + 180);
   if (parsedPickupDate < minPickup || parsedPickupDate > maxPickup) {
     return NextResponse.json({ error: "Pickup date must be 1–180 days from today" }, { status: 400 });
   }

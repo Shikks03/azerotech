@@ -5,8 +5,7 @@ import { requireAdmin } from "@/lib/requireAdmin";
 import { signAdminToken, getTokenFromRequest, verifyAdminToken, COOKIE_NAME, TTL_SECONDS } from "@/lib/auth";
 import clientPromise from "@/lib/mongodb";
 import { ensureIndexes } from "@/lib/ensureIndexes";
-
-const DB = "azerotech";
+import { DB } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
   // B-1: CSRF defense — must carry custom header (same check as login/logout)

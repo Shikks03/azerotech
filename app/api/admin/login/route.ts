@@ -3,20 +3,10 @@ import bcrypt from "bcryptjs";
 import { randomUUID } from "crypto";
 import { signAdminToken, COOKIE_NAME, TTL_SECONDS } from "@/lib/auth";
 import clientPromise from "@/lib/mongodb";
-
-const DB = "azerotech";
+import { getClientIp } from "@/lib/publicRateLimit";
+import { DB } from "@/lib/db";
 const MAX_ATTEMPTS = 5;
 const LOCK_DURATION_MS = 15 * 60 * 1000; // 15 minutes
-
-function getClientIp(req: NextRequest): string {
-  // H1: x-real-ip is set by the reverse proxy and cannot be spoofed by clients.
-  // x-forwarded-for comes first only as last resort since any client can forge it.
-  return (
-    req.headers.get("x-real-ip") ??
-    req.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
-    "unknown"
-  );
-}
 
 export async function POST(req: NextRequest) {
   // C4: CSRF defense — must carry custom header
@@ -52,6 +42,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
   }
 
+  // S-I1: Validate password type before incrementing attempt counter — prevents wasting
+  // lockout quota by sending non-string bodies without a real password attempt
+  if (typeof password !== "string" || password.length === 0) {
+    return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+  }
+
   // H2: Increment counter atomically before bcrypt to prevent race-condition bypass
   const updated = await attempts.findOneAndUpdate(
     { ip },
@@ -76,18 +72,15 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  if (typeof password !== "string" || password.length === 0) {
-    return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
-  }
-
   const match = await bcrypt.compare(password, hash);
 
   if (!match) {
     return NextResponse.json({ success: false }, { status: 401 });
   }
 
-  // Success — reset counter but preserve document to maintain lockout continuity
-  await attempts.updateOne({ ip }, { $set: { attempts: 0, lockUntil: null } });
+  // Success — only clear lockUntil; preserve attempts count for shared-NAT scenarios
+  // S-I2: resetting attempts: 0 allowed shared-NAT attackers to indefinitely prevent lockout
+  await attempts.updateOne({ ip }, { $unset: { lockUntil: "" } });
 
   const jti = randomUUID();
   const token = await signAdminToken(jti);

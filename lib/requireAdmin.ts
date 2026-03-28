@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTokenFromRequest, verifyAdminToken } from "./auth";
 import clientPromise from "./mongodb";
-
-const DB = "azerotech";
+import { DB } from "./db";
 
 export async function requireAdmin(
   req: NextRequest
