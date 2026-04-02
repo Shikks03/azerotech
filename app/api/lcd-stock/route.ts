@@ -19,7 +19,12 @@ export async function POST(req: NextRequest) {
   const authError = await requireAdmin(req);
   if (authError) return authError;
 
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
 
   // phone_brand: required, string, 1–100 chars
   if (typeof body.phone_brand !== "string" || body.phone_brand.trim().length === 0 || body.phone_brand.trim().length > 100) {
