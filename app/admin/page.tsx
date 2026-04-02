@@ -121,7 +121,21 @@ interface ServiceRecord {
 interface LcdItem {
   id: number;
   name: string;
+  phone_brand: string;
+  lcd_brand: string;
+  compatible_models: string[];
+  anna_price: number | null;
+  marlon_price: number | null;
   stock: number;
+}
+
+interface LcdItemFormData {
+  phone_brand: string;
+  lcd_brand: string;
+  compatible_models: string[];
+  anna_price: number | null;
+  marlon_price: number | null;
+  stock?: number;
 }
 
 const STATUS_STYLES: Record<EntryStatus, { bg: string; color: string }> = {
@@ -141,9 +155,9 @@ function stockLevel(stock: number | undefined): { color: string; bg: string; lab
 }
 
 function lcdStockLevel(stock: number): { color: string; bg: string; label: string } {
-  if (stock === 0) return { color: "#EF4444", bg: "rgba(239,68,68,0.15)",  label: "No Stock" };
-  if (stock === 1) return { color: "#EAB308", bg: "rgba(234,179,8,0.15)",  label: "Low Stock" };
-  return             { color: "#16A34A", bg: "rgba(22,163,74,0.15)",  label: "In Stock" };
+  if (stock === 0)        return { color: "#EF4444", bg: "rgba(239,68,68,0.15)",  label: "No Stock" };
+  if (stock <= 2)         return { color: "#EAB308", bg: "rgba(234,179,8,0.15)",  label: "Low Stock" };
+  return                         { color: "#16A34A", bg: "rgba(22,163,74,0.15)",  label: "In Stock" };
 }
 
 function formatDate(iso: string) {
@@ -217,7 +231,7 @@ export default function AdminPage() {
 
   // LCD Stock state (cloud-backed)
   const [lcdItems, setLcdItems] = useState<LcdItem[]>([]);
-  const [lcdStockInputs, setLcdStockInputs] = useState<Record<number, string>>({});
+  const [modelsModalItem, setModelsModalItem] = useState<LcdItem | null>(null);
   const [showAddLcdModal, setShowAddLcdModal] = useState(false);
   const [editingLcd, setEditingLcd] = useState<LcdItem | null>(null);
   const [confirmDeleteLcdId, setConfirmDeleteLcdId] = useState<number | null>(null);
@@ -367,11 +381,11 @@ export default function AdminPage() {
     });
   };
 
-  const addLcdItem = async (name: string, stock: number) => {
+  const addLcdItem = async (data: LcdItemFormData): Promise<void> => {
     const res = await adminFetch("/api/lcd-stock", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, stock }),
+      body: JSON.stringify(data),
     });
     if (!res) return;
     const newItem = await res.json() as LcdItem;
@@ -379,12 +393,14 @@ export default function AdminPage() {
     setShowAddLcdModal(false);
   };
 
-  const editLcdName = async (id: number, name: string) => {
-    setLcdItems((prev) => prev.map((item) => item.id === id ? { ...item, name: name.trim() } : item));
+  const editLcdItem = async (id: number, data: LcdItemFormData): Promise<void> => {
+    setLcdItems((prev) => prev.map((item) =>
+      item.id === id ? { ...item, ...data } : item
+    ));
     await adminFetch(`/api/lcd-stock/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name.trim() }),
+      body: JSON.stringify(data),
     });
     setEditingLcd(null);
   };
