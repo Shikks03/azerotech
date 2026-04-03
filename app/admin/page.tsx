@@ -26,6 +26,7 @@ import {
   AlertTriangle,
   FileText,
   ChevronDown,
+  CheckCircle,
 } from "lucide-react";
 
 const TIME_SLOTS = [
@@ -191,7 +192,7 @@ export default function AdminPage() {
   const lastActiveRef = useRef<number>(Date.now());
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
-  const [loginError, setLoginError] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState<"appointments" | "reservations" | "inventory" | "lcd-stock" | "customers">("appointments");
   const [appointments, setAppointments] = useState<AppointmentEntry[]>([]);
@@ -227,13 +228,15 @@ export default function AdminPage() {
     });
 
   const [lcdSearch, setLcdSearch] = useState("");
-  const [lcdSort, setLcdSort] = useState<"name-asc" | "name-desc" | "low-stock" | "no-stock">("name-asc");
+  const [lcdSort, setLcdSort] = useState<"name-asc" | "name-desc" | "low-stock" | "no-stock" | "high-stock">("name-asc");
 
   // LCD Stock state (cloud-backed)
   const [lcdItems, setLcdItems] = useState<LcdItem[]>([]);
   const [modelsModalItem, setModelsModalItem] = useState<LcdItem | null>(null);
   const [showAddLcdModal, setShowAddLcdModal] = useState(false);
   const [editingLcd, setEditingLcd] = useState<LcdItem | null>(null);
+  const [lcdToast, setLcdToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const lcdToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const adminFetch = async (
     input: string,
@@ -370,14 +373,25 @@ export default function AdminPage() {
 
   const loadData = () => setRefreshKey((k) => k + 1);
 
+  const showLcdToast = (message: string, type: "success" | "error") => {
+    if (lcdToastTimerRef.current) clearTimeout(lcdToastTimerRef.current);
+    setLcdToast({ message, type });
+    lcdToastTimerRef.current = setTimeout(() => setLcdToast(null), 3500);
+  };
+
   const updateLcdStock = async (id: number, newStock: number) => {
     if (newStock < 0) return;
+    const prevStock = lcdItems.find((i) => i.id === id)?.stock ?? 0;
     setLcdItems((prev) => prev.map((item) => item.id === id ? { ...item, stock: newStock } : item));
-    await adminFetch(`/api/lcd-stock/${id}`, {
+    const res = await adminFetch(`/api/lcd-stock/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ stock: newStock }),
     });
+    if (!res || !res.ok) {
+      setLcdItems((prev) => prev.map((item) => item.id === id ? { ...item, stock: prevStock } : item));
+      showLcdToast("Failed to update stock. Please try again.", "error");
+    }
   };
 
   const addLcdItem = async (data: LcdItemFormData): Promise<void> => {
@@ -387,26 +401,49 @@ export default function AdminPage() {
       body: JSON.stringify(data),
     });
     if (!res) return;
+    if (!res.ok) {
+      showLcdToast("Failed to add LCD item. Please try again.", "error");
+      return;
+    }
     const newItem = await res.json() as LcdItem;
     setLcdItems((prev) => [...prev, newItem]);
     setShowAddLcdModal(false);
+    showLcdToast("LCD item added.", "success");
   };
 
   const editLcdItem = async (id: number, data: LcdItemFormData): Promise<void> => {
+    const prevItems = lcdItems;
     setLcdItems((prev) => prev.map((item) =>
-      item.id === id ? { ...item, ...data } : item
+      item.id === id ? {
+        ...item,
+        ...data,
+        name: `${data.phone_brand} ${data.lcd_brand}`.trim(),
+      } : item
     ));
-    await adminFetch(`/api/lcd-stock/${id}`, {
+    const res = await adminFetch(`/api/lcd-stock/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
+    if (!res || !res.ok) {
+      setLcdItems(prevItems);
+      showLcdToast("Failed to save changes. Please try again.", "error");
+      return;
+    }
     setEditingLcd(null);
+    showLcdToast("LCD item updated.", "success");
   };
 
   const deleteLcdItem = async (id: number) => {
+    const prevItems = lcdItems;
     setLcdItems((prev) => prev.filter((item) => item.id !== id));
-    await adminFetch(`/api/lcd-stock/${id}`, { method: "DELETE" });
+    const res = await adminFetch(`/api/lcd-stock/${id}`, { method: "DELETE" });
+    if (!res || !res.ok) {
+      setLcdItems(prevItems);
+      showLcdToast("Failed to delete item. Please try again.", "error");
+      return;
+    }
+    showLcdToast("LCD item deleted.", "success");
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -425,12 +462,24 @@ export default function AdminPage() {
         sessionStorage.setItem("azerotech_admin_authed", "true");
         setLoading(true);
         setIsAuthenticated(true);
-        setLoginError(false);
+        setLoginError(null);
       } else {
-        setLoginError(true);
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 429) {
+          const until = data.lockedUntil ? new Date(data.lockedUntil) : null;
+          setLoginError(until
+            ? `Too many failed attempts. Try again at ${until.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}.`
+            : "Too many failed attempts. Please wait 15 minutes."
+          );
+        } else if (res.status === 401 && data.attemptsUsed && data.maxAttempts) {
+          const remaining = data.maxAttempts - data.attemptsUsed;
+          setLoginError(`Incorrect password. ${remaining} attempt${remaining !== 1 ? "s" : ""} remaining before lockout.`);
+        } else {
+          setLoginError("Incorrect password. Try again.");
+        }
       }
     } catch {
-      setLoginError(true);
+      setLoginError("Something went wrong. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -444,7 +493,7 @@ export default function AdminPage() {
     sessionStorage.removeItem("azerotech_admin_authed");
     setIsAuthenticated(false);
     setPasswordInput("");
-    setLoginError(false);
+    setLoginError(null);
   };
 
   const updateAppointmentStatus = (id: string, status: EntryStatus) => {
@@ -654,7 +703,7 @@ export default function AdminPage() {
                 value={passwordInput}
                 onChange={(e) => {
                   setPasswordInput(e.target.value);
-                  setLoginError(false);
+                  setLoginError(null);
                 }}
                 placeholder="Enter admin password"
                 autoFocus
@@ -665,7 +714,7 @@ export default function AdminPage() {
               />
               {loginError && (
                 <p className="text-sm mt-1.5 font-medium" style={{ color: "#EF4444" }}>
-                  Incorrect password. Try again.
+                  {loginError}
                 </p>
               )}
             </div>
@@ -1333,9 +1382,34 @@ export default function AdminPage() {
                   }}
                 >
                   <Plus className="w-4 h-4" />
-                  Add LCD Type
+                  Add LCD Item
                 </button>
               </div>
+
+              {/* Toast notification */}
+              <AnimatePresence>
+                {lcdToast && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex items-center gap-2.5 px-4 py-3 rounded-xl mb-4 text-sm font-semibold"
+                    style={{
+                      background: lcdToast.type === "success" ? "rgba(22,163,74,0.15)" : "rgba(239,68,68,0.15)",
+                      border: `1px solid ${lcdToast.type === "success" ? "rgba(22,163,74,0.35)" : "rgba(239,68,68,0.35)"}`,
+                      color: lcdToast.type === "success" ? "#16A34A" : "#EF4444",
+                    }}
+                    role="status"
+                    aria-live="polite"
+                  >
+                    {lcdToast.type === "success"
+                      ? <CheckCircle className="w-4 h-4 shrink-0" />
+                      : <AlertTriangle className="w-4 h-4 shrink-0" />}
+                    {lcdToast.message}
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Stats bar */}
               {lcdItems.length > 0 && (() => {
@@ -1377,29 +1451,54 @@ export default function AdminPage() {
                     className="px-3 py-2.5 rounded-xl text-sm font-semibold focus:outline-none cursor-pointer"
                     style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)", color: "#94A3B8" }}
                   >
-                    <option value="name-asc"  style={{ background: "#0F1535" }}>Name A–Z</option>
-                    <option value="name-desc" style={{ background: "#0F1535" }}>Name Z–A</option>
-                    <option value="low-stock" style={{ background: "#0F1535" }}>Low Stock</option>
-                    <option value="no-stock"  style={{ background: "#0F1535" }}>No Stock</option>
+                    <option value="name-asc"   style={{ background: "#0F1535" }}>Name A–Z</option>
+                    <option value="name-desc"  style={{ background: "#0F1535" }}>Name Z–A</option>
+                    <option value="high-stock" style={{ background: "#0F1535" }}>High Stock</option>
+                    <option value="low-stock"  style={{ background: "#0F1535" }}>Low Stock</option>
+                    <option value="no-stock"   style={{ background: "#0F1535" }}>No Stock</option>
                   </select>
                 </div>
               )}
 
               {lcdItems.length === 0 ? (
-                <EmptyState label="LCD types" detail="No LCD types yet. Click 'Add LCD Type' to start tracking your LCD replacement stock." />
+                <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+                  <Monitor className="w-10 h-10" style={{ color: "#4F6EF7", opacity: 0.4 }} />
+                  <div>
+                    <p className="text-white font-semibold mb-1">No LCD items yet</p>
+                    <p className="text-slate-500 text-sm">Add your first LCD item to start tracking replacement stock.</p>
+                  </div>
+                  <button
+                    onClick={() => setShowAddLcdModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:opacity-90 mt-1"
+                    style={{
+                      background: "linear-gradient(135deg, #4F6EF7, #6B84FF)",
+                      color: "white",
+                      boxShadow: "0 4px 14px rgba(79,110,247,0.3)",
+                    }}
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add LCD Item
+                  </button>
+                </div>
               ) : (() => {
                 const filtered = lcdItems
                   .filter((item) => {
                     const q = lcdSearch.toLowerCase();
-                    return item.phone_brand.toLowerCase().includes(q) || item.lcd_brand.toLowerCase().includes(q);
+                    return (item.phone_brand || "").toLowerCase().includes(q) || (item.lcd_brand || "").toLowerCase().includes(q) || (item.compatible_models || []).some((m) => m.toLowerCase().includes(q));
                   })
                   .sort((a, b) => {
-                    const nameA = `${a.phone_brand} ${a.lcd_brand}`;
-                    const nameB = `${b.phone_brand} ${b.lcd_brand}`;
+                    const nameA = `${a.phone_brand || ""} ${a.lcd_brand || ""}`;
+                    const nameB = `${b.phone_brand || ""} ${b.lcd_brand || ""}`;
                     if (lcdSort === "name-asc")  return nameA.localeCompare(nameB);
                     if (lcdSort === "name-desc") return nameB.localeCompare(nameA);
-                    if (lcdSort === "low-stock") return a.stock - b.stock;
-                    if (lcdSort === "no-stock")  return (a.stock === 0 ? 0 : 1) - (b.stock === 0 ? 0 : 1);
+                    if (lcdSort === "high-stock") return b.stock - a.stock;
+                    if (lcdSort === "low-stock") {
+                      const aLow = a.stock > 0 && a.stock <= 2 ? 0 : 1;
+                      const bLow = b.stock > 0 && b.stock <= 2 ? 0 : 1;
+                      if (aLow !== bLow) return aLow - bLow;
+                      return a.stock - b.stock;
+                    }
+                    if (lcdSort === "no-stock")   return (a.stock === 0 ? 0 : 1) - (b.stock === 0 ? 0 : 1);
                     return 0;
                   });
                 if (filtered.length === 0) return (
@@ -1810,7 +1909,7 @@ export default function AdminPage() {
         {showAddLcdModal && (
           <LcdFormModal
             key="lcd-add-modal"
-            title="Add LCD Type"
+            title="Add LCD Item"
             initialData={{ phone_brand: "", lcd_brand: "", compatible_models: [], anna_price: null, marlon_price: null, stock: 0 }}
             onSubmit={(data) => { void addLcdItem(data); }}
             onClose={() => setShowAddLcdModal(false)}
@@ -1819,7 +1918,7 @@ export default function AdminPage() {
         {editingLcd && (
           <LcdFormModal
             key="lcd-edit-modal"
-            title="Edit LCD Type"
+            title="Edit LCD Item"
             initialData={{
               phone_brand: editingLcd.phone_brand ?? "",
               lcd_brand: editingLcd.lcd_brand ?? "",
@@ -1828,7 +1927,6 @@ export default function AdminPage() {
               marlon_price: editingLcd.marlon_price ?? null,
               stock: editingLcd.stock,
             }}
-            hideStock
             onSubmit={(data) => { void editLcdItem(editingLcd.id, data); }}
             onClose={() => setEditingLcd(null)}
           />
@@ -2938,13 +3036,11 @@ function AddServiceRecordModal({
 function LcdFormModal({
   title,
   initialData,
-  hideStock,
   onSubmit,
   onClose,
 }: {
   title: string;
   initialData: LcdItemFormData & { stock: number };
-  hideStock?: boolean;
   onSubmit: (data: LcdItemFormData) => void;
   onClose: () => void;
 }) {
@@ -2952,10 +3048,12 @@ function LcdFormModal({
   const [lcdBrand, setLcdBrand] = useState(initialData.lcd_brand);
   const [models, setModels] = useState<string[]>(initialData.compatible_models);
   const [modelInput, setModelInput] = useState("");
+  const [dupWarning, setDupWarning] = useState(false);
   const [annaPrice, setAnnaPrice] = useState(initialData.anna_price !== null ? String(initialData.anna_price) : "");
   const [marlonPrice, setMarlonPrice] = useState(initialData.marlon_price !== null ? String(initialData.marlon_price) : "");
   const [stock, setStock] = useState(String(initialData.stock));
   const ease2 = [0.22, 1, 0.36, 1] as [number, number, number, number];
+  const titleId = "lcd-modal-title";
 
   const inputStyle: React.CSSProperties = {
     background: "rgba(255,255,255,0.06)",
@@ -2966,10 +3064,15 @@ function LcdFormModal({
     const trimmed = raw.trim();
     if (!trimmed || trimmed.length > 100) return;
     if (models.length >= 50) return;
-    // Case-insensitive dedup (first-entered wins)
-    if (models.some(m => m.toLowerCase() === trimmed.toLowerCase())) return;
+    if (models.some(m => m.toLowerCase() === trimmed.toLowerCase())) {
+      setDupWarning(true);
+      setTimeout(() => setDupWarning(false), 2000);
+      setModelInput("");
+      return;
+    }
     setModels(prev => [...prev, trimmed]);
     setModelInput("");
+    setDupWarning(false);
   };
 
   const handleModelKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -2986,25 +3089,27 @@ function LcdFormModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!phoneBrand.trim() || !lcdBrand.trim()) return;
-    if (!hideStock) {
-      const s = parseInt(stock, 10);
-      if (isNaN(s) || s < 0) return;
-    }
+    const s = parseInt(stock, 10);
+    if (isNaN(s) || s < 0) return;
     onSubmit({
       phone_brand: phoneBrand.trim(),
       lcd_brand: lcdBrand.trim(),
       compatible_models: models,
       anna_price: annaPrice !== "" ? Math.floor(Number(annaPrice)) : null,
       marlon_price: marlonPrice !== "" ? Math.floor(Number(marlonPrice)) : null,
-      ...(hideStock ? {} : { stock: parseInt(stock, 10) || 0 }),
+      stock: s,
     });
   };
+
+  const isEdit = title.toLowerCase().startsWith("edit");
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: "rgba(0,0,0,0.72)", backdropFilter: "blur(6px)" }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.96, y: 16 }}
@@ -3022,9 +3127,9 @@ function LcdFormModal({
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <Monitor className="w-5 h-5" style={{ color: "#4F6EF7" }} />
-            <h2 className="text-white font-bold text-lg">{title}</h2>
+            <h2 id={titleId} className="text-white font-bold text-lg">{title}</h2>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+          <button onClick={onClose} aria-label="Close modal" className="text-slate-400 hover:text-white transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -3071,7 +3176,7 @@ function LcdFormModal({
               Compatible Phone Models <span className="text-slate-600 font-normal normal-case">(optional)</span>
             </label>
             {models.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mb-2">
+              <div className="flex flex-wrap gap-1.5 mb-2 max-h-32 overflow-y-auto">
                 {models.map((m) => (
                   <span
                     key={m}
@@ -3082,6 +3187,7 @@ function LcdFormModal({
                     <button
                       type="button"
                       onClick={() => setModels(prev => prev.filter(x => x !== m))}
+                      aria-label={`Remove ${m}`}
                       className="hover:opacity-70 transition-opacity leading-none"
                     >
                       <X className="w-3 h-3" />
@@ -3090,13 +3196,16 @@ function LcdFormModal({
                 ))}
               </div>
             )}
+            {dupWarning && (
+              <p className="text-xs mb-1.5" style={{ color: "#EAB308" }}>Model already added.</p>
+            )}
             <input
               type="text"
               value={modelInput}
-              onChange={(e) => setModelInput(e.target.value)}
+              onChange={(e) => setModelInput(e.target.value.replace(/,/g, ""))}
               onKeyDown={handleModelKeyDown}
               onBlur={handleModelBlur}
-              placeholder={models.length < 50 ? "Type model, press Enter or comma to add…" : "Max 50 models reached"}
+              placeholder={models.length < 50 ? "Type model, press Enter to add…" : "Max 50 models reached"}
               disabled={models.length >= 50}
               className="w-full px-4 py-3 rounded-xl text-sm text-white focus:outline-none placeholder:text-slate-600"
               style={inputStyle}
@@ -3135,22 +3244,20 @@ function LcdFormModal({
             </div>
           </div>
 
-          {/* Stock (Add only) */}
-          {!hideStock && (
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                Initial Stock <span style={{ color: "#EF4444" }}>*</span>
-              </label>
-              <input
-                type="number"
-                min={0}
-                value={stock}
-                onChange={(e) => setStock(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl text-sm text-white focus:outline-none"
-                style={inputStyle}
-              />
-            </div>
-          )}
+          {/* Stock */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+              {isEdit ? "Stock" : "Initial Stock"} <span style={{ color: "#EF4444" }}>*</span>
+            </label>
+            <input
+              type="number"
+              min={0}
+              value={stock}
+              onChange={(e) => setStock(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl text-sm text-white focus:outline-none"
+              style={inputStyle}
+            />
+          </div>
 
           <div className="flex gap-3 mt-2">
             <button
@@ -3170,7 +3277,7 @@ function LcdFormModal({
                 boxShadow: "0 4px 14px rgba(79,110,247,0.3)",
               }}
             >
-              {title}
+              {isEdit ? "Save Changes" : "Add LCD Item"}
             </button>
           </div>
         </form>
@@ -3187,12 +3294,16 @@ function LcdModelsModal({
   onClose: () => void;
 }) {
   const ease2 = [0.22, 1, 0.36, 1] as [number, number, number, number];
-  const title = item.phone_brand.trim() || "Compatible Models";
+  const title = `${item.phone_brand} ${item.lcd_brand}`.trim() || "Compatible Models";
+  const modalsId = "lcd-models-modal-title";
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: "rgba(0,0,0,0.72)", backdropFilter: "blur(6px)" }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={modalsId}
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.96, y: 16 }}
@@ -3207,8 +3318,8 @@ function LcdModelsModal({
         }}
       >
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-white font-bold text-lg">{title}</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+          <h2 id={modalsId} className="text-white font-bold text-lg">{title}</h2>
+          <button onClick={onClose} aria-label="Close modal" className="text-slate-400 hover:text-white transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -3248,16 +3359,29 @@ function LcdTable({
   onUpdateStock: (id: number, newStock: number) => void;
   onShowModels: (item: LcdItem) => void;
 }) {
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<number | null>(null);
+  const [editingStockId, setEditingStockId] = useState<number | null>(null);
+  const [editingStockVal, setEditingStockVal] = useState("");
   const thBase = "px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500";
+
+  const formatPrice = (p: number | null | undefined) => {
+    if (p === null || p === undefined) return "—";
+    return `₱${p.toLocaleString("en-PH")}`;
+  };
+
   return (
     <div style={{ overflowX: "auto" }}>
-      <table style={{ minWidth: 960, width: "100%", borderCollapse: "collapse" }}>
+      <table
+        style={{ minWidth: 900, width: "100%", borderCollapse: "collapse" }}
+        aria-label="LCD stock inventory"
+      >
         <thead>
           {/* Group header row — Supplier Prices spans Anna + Marlon */}
           <tr>
-            <th colSpan={3} />
+            <th colSpan={3} scope="col" />
             <th
               colSpan={2}
+              scope="colgroup"
               className="px-3 py-1.5 text-center text-xs font-semibold uppercase tracking-wider"
               style={{
                 color: "#4F6EF7",
@@ -3267,53 +3391,71 @@ function LcdTable({
             >
               Supplier Prices
             </th>
-            <th colSpan={3} />
+            <th colSpan={2} scope="col" />
           </tr>
           {/* Column header row */}
           <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-            <th className={thBase} style={{ width: "22%" }}>Compatible Models</th>
-            <th className={thBase} style={{ width: "11%" }}>Phone Brand</th>
-            <th className={thBase} style={{ width: "11%" }}>LCD Brand</th>
+            <th scope="col" className={thBase} style={{ width: "14%" }}>Phone Brand</th>
+            <th scope="col" className={thBase} style={{ width: "11%" }}>LCD Brand</th>
+            <th scope="col" className={thBase} style={{ width: "25%" }}>Compatible Models</th>
             <th
-              className={`${thBase}`}
+              scope="col"
+              className={thBase}
               style={{ width: "13%", color: "#4F6EF7", borderLeft: "1px solid rgba(79,110,247,0.25)" }}
             >Anna</th>
             <th
-              className={`${thBase}`}
+              scope="col"
+              className={thBase}
               style={{ width: "13%", color: "#4F6EF7", borderRight: "1px solid rgba(79,110,247,0.25)" }}
             >Marlon</th>
-            <th className={thBase} style={{ width: "10%" }}>Status</th>
-            <th className={thBase} style={{ width: "10%" }}>Stock</th>
-            <th className={thBase} style={{ width: "10%" }}>Actions</th>
+            <th scope="col" className={thBase} style={{ width: "12%" }}>Stock</th>
+            <th scope="col" className={thBase} style={{ width: "12%" }}>Actions</th>
           </tr>
         </thead>
         <tbody>
           {items.map((item) => {
-            const { color, bg, label } = lcdStockLevel(item.stock);
+            const { color } = lcdStockLevel(item.stock);
             const phoneBrand = item.phone_brand || "";
             const lcdBrand   = item.lcd_brand   || "";
             const models     = item.compatible_models ?? [];
-            const shownModels   = models.slice(0, 2);
-            const remainingCnt  = models.length - 2;
+            const shownModels   = models.slice(0, 3);
+            const remainingCnt  = models.length - 3;
             return (
               <tr
                 key={item.id}
                 style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}
                 className="hover:bg-white/[0.02] transition-colors"
               >
+                {/* Phone Brand */}
+                <td className="px-3 py-3" style={{ width: "14%" }}>
+                  <span className="text-white font-bold text-sm">{phoneBrand || "—"}</span>
+                </td>
+                {/* LCD Brand */}
+                <td className="px-3 py-3" style={{ width: "11%" }}>
+                  <span className="text-slate-400 text-sm">{lcdBrand || "—"}</span>
+                </td>
                 {/* Compatible Models */}
-                <td className="px-3 py-3" style={{ width: "22%" }}>
+                <td className="px-3 py-3" style={{ width: "25%" }}>
                   {models.length === 0 ? (
                     <span className="text-slate-600 text-xs italic">None added</span>
                   ) : (
                     <div className="flex flex-wrap gap-1">
                       {shownModels.map(m => (
-                        <span key={m} className="px-2 py-0.5 rounded-full text-xs font-semibold" style={{ background: "rgba(79,110,247,0.12)", color: "#8B9EFF" }}>{m}</span>
+                        <button
+                          key={m}
+                          onClick={() => onShowModels(item)}
+                          aria-label={`${m} — view all models for ${item.name}`}
+                          aria-haspopup="dialog"
+                          className="px-2 py-0.5 rounded-full text-xs font-semibold transition-all hover:opacity-80 cursor-pointer"
+                          style={{ background: "rgba(79,110,247,0.12)", color: "#8B9EFF" }}
+                        >{m}</button>
                       ))}
                       {remainingCnt > 0 && (
                         <button
                           onClick={() => onShowModels(item)}
-                          className="px-2 py-0.5 rounded-full text-xs font-semibold transition-all hover:opacity-80"
+                          aria-label={`+${remainingCnt} more models for ${item.name}`}
+                          aria-haspopup="dialog"
+                          className="px-2 py-0.5 rounded-full text-xs font-semibold transition-all hover:opacity-80 cursor-pointer"
                           style={{ background: "rgba(79,110,247,0.20)", color: "#8B9EFF" }}
                         >
                           +{remainingCnt} more
@@ -3322,66 +3464,73 @@ function LcdTable({
                     </div>
                   )}
                 </td>
-                {/* Phone Brand */}
-                <td className="px-3 py-3" style={{ width: "11%" }}>
-                  <span className="text-white font-bold text-sm">{phoneBrand || "—"}</span>
-                </td>
-                {/* LCD Brand */}
-                <td className="px-3 py-3" style={{ width: "11%" }}>
-                  <span className="text-slate-400 text-sm">{lcdBrand || "—"}</span>
-                </td>
                 {/* Anna Price */}
-                <td className="px-3 py-3 text-sm text-slate-300" style={{ width: "13%", borderLeft: "1px solid rgba(79,110,247,0.15)", borderRight: "none" }}>
-                  {item.anna_price !== null && item.anna_price !== undefined ? `₱${item.anna_price}` : "—"}
+                <td className="px-3 py-3 text-sm text-slate-300" style={{ width: "13%", borderLeft: "1px solid rgba(79,110,247,0.15)" }}>
+                  {formatPrice(item.anna_price)}
                 </td>
                 {/* Marlon Price */}
                 <td className="px-3 py-3 text-sm text-slate-300" style={{ width: "13%", borderRight: "1px solid rgba(79,110,247,0.15)" }}>
-                  {item.marlon_price !== null && item.marlon_price !== undefined ? `₱${item.marlon_price}` : "—"}
+                  {formatPrice(item.marlon_price)}
                 </td>
-                {/* Status */}
-                <td className="px-3 py-3" style={{ width: "10%" }}>
-                  <span className="px-2.5 py-1 rounded-full text-xs font-bold whitespace-nowrap" style={{ background: bg, color }}>{label}</span>
-                </td>
-                {/* Stock */}
-                <td className="px-3 py-3" style={{ width: "10%" }}>
+                {/* Stock — inline editable */}
+                <td className="px-3 py-3" style={{ width: "12%" }}>
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => onUpdateStock(item.id, item.stock - 1)}
                       disabled={item.stock <= 0}
+                      aria-label="Decrease stock by 1"
+                      aria-disabled={item.stock <= 0}
                       className="w-7 h-7 rounded-lg flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                       style={{ background: "rgba(239,68,68,0.15)", color: "#EF4444" }}
-                      title="Remove 1"
                     >
                       <Minus className="w-3 h-3" />
                     </button>
-                    <span className="text-base font-bold w-6 text-center" style={{ color }}>{item.stock}</span>
+                    <input
+                      type="number"
+                      min={0}
+                      value={editingStockId === item.id ? editingStockVal : String(item.stock)}
+                      onFocus={() => { setEditingStockId(item.id); setEditingStockVal(String(item.stock)); }}
+                      onChange={(e) => setEditingStockVal(e.target.value)}
+                      onBlur={() => {
+                        const n = parseInt(editingStockVal, 10);
+                        if (!isNaN(n) && n >= 0 && n !== item.stock) onUpdateStock(item.id, n);
+                        setEditingStockId(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                        if (e.key === "Escape") setEditingStockId(null);
+                      }}
+                      aria-label={`Stock count for ${item.name}`}
+                      className="w-10 text-base font-bold text-center rounded px-1 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 bg-transparent focus:bg-white/10 transition-colors [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                      style={{ color }}
+                    />
                     <button
                       onClick={() => onUpdateStock(item.id, item.stock + 1)}
+                      aria-label="Increase stock by 1"
                       className="w-7 h-7 rounded-lg flex items-center justify-center transition-all"
                       style={{ background: "rgba(22,163,74,0.15)", color: "#16A34A" }}
-                      title="Add 1"
                     >
                       <Plus className="w-3 h-3" />
                     </button>
                   </div>
                 </td>
                 {/* Actions */}
-                <td className="px-3 py-3" style={{ width: "10%" }}>
+                <td className="px-3 py-3" style={{ width: "12%" }}>
                   <div className="flex gap-1.5">
                     <button
                       onClick={() => onEdit(item)}
+                      aria-label={`Edit ${item.name}`}
                       className="flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all hover:opacity-80"
                       style={{ background: "rgba(79,110,247,0.12)", color: "#8B9EFF" }}
-                      title="Edit"
                     >
                       <Pencil className="w-3 h-3" />
                       Edit
                     </button>
                     <button
-                      onClick={() => onDelete(item.id)}
+                      onClick={() => setConfirmingDeleteId(item.id)}
+                      aria-label={`Delete ${item.name}`}
                       className="flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all hover:opacity-80"
                       style={{ background: "rgba(239,68,68,0.10)", color: "#EF4444" }}
-                      title="Remove"
                     >
                       <Trash2 className="w-3 h-3" />
                     </button>
@@ -3392,6 +3541,87 @@ function LcdTable({
           })}
         </tbody>
       </table>
+
+      {/* Delete confirmation modal */}
+      <AnimatePresence>
+        {confirmingDeleteId !== null && (() => {
+          const target = items.find(i => i.id === confirmingDeleteId);
+          if (!target) return null;
+          return (
+            <LcdDeleteModal
+              key="lcd-delete-modal"
+              item={target}
+              onConfirm={() => { onDelete(target.id); setConfirmingDeleteId(null); }}
+              onClose={() => setConfirmingDeleteId(null)}
+            />
+          );
+        })()}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function LcdDeleteModal({
+  item,
+  onConfirm,
+  onClose,
+}: {
+  item: LcdItem;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  const ease2 = [0.22, 1, 0.36, 1] as [number, number, number, number];
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.72)", backdropFilter: "blur(6px)" }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="lcd-delete-title"
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 16 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.96, y: 16 }}
+        transition={{ duration: 0.2, ease: ease2 }}
+        className="w-full max-w-sm rounded-2xl p-6"
+        style={{
+          background: "#0D1225",
+          border: "1px solid rgba(239,68,68,0.3)",
+          boxShadow: "0 24px 64px rgba(0,0,0,0.6)",
+        }}
+      >
+        <div className="flex items-start gap-3 mb-5">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(239,68,68,0.15)" }}>
+            <Trash2 className="w-5 h-5" style={{ color: "#EF4444" }} />
+          </div>
+          <div>
+            <h2 id="lcd-delete-title" className="text-white font-bold text-base mb-1">Delete LCD Item</h2>
+            <p className="text-slate-400 text-sm">
+              Are you sure you want to delete{" "}
+              <span className="text-white font-semibold">{item.name || `${item.phone_brand} ${item.lcd_brand}`.trim()}</span>?
+              This action cannot be undone.
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-80"
+            style={{ background: "rgba(255,255,255,0.07)", color: "#94A3B8" }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
+            style={{ background: "rgba(239,68,68,0.85)", color: "white" }}
+          >
+            Delete
+          </button>
+        </div>
+      </motion.div>
     </div>
   );
 }

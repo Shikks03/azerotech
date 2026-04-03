@@ -22,14 +22,19 @@ export async function POST(req: NextRequest) {
 
   // Check rate limit
   const record = await attempts.findOne({ ip });
-  if (record?.lockUntil && new Date(record.lockUntil) > new Date()) {
-    const remaining = Math.ceil(
-      (new Date(record.lockUntil).getTime() - Date.now()) / 1000 / 60
-    );
-    return NextResponse.json(
-      { error: `Too many attempts. Try again in ${remaining} minutes.` },
-      { status: 429 }
-    );
+  if (record?.lockUntil) {
+    if (new Date(record.lockUntil) > new Date()) {
+      const remaining = Math.ceil(
+        (new Date(record.lockUntil).getTime() - Date.now()) / 1000 / 60
+      );
+      return NextResponse.json(
+        { error: `Too many attempts. Try again in ${remaining} minutes.`, lockedUntil: record.lockUntil },
+        { status: 429 }
+      );
+    } else {
+      // Lock expired — reset so they start fresh
+      await attempts.updateOne({ ip }, { $unset: { lockUntil: "" }, $set: { attempts: 0 } });
+    }
   }
 
   const { password } = await req.json();
@@ -75,7 +80,7 @@ export async function POST(req: NextRequest) {
   const match = await bcrypt.compare(password, hash);
 
   if (!match) {
-    return NextResponse.json({ success: false }, { status: 401 });
+    return NextResponse.json({ attemptsUsed: newCount, maxAttempts: MAX_ATTEMPTS }, { status: 401 });
   }
 
   // Success — only clear lockUntil; preserve attempts count for shared-NAT scenarios
