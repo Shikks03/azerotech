@@ -12,7 +12,9 @@
       "Bash(npx next:*)",
       "Bash(C:/Users/Shikks/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.5/scripts/start-server.sh --project-dir C:/Users/Shikks/Projects/azerotech)",
       "Bash(ls -la /c/Users/Shikks/Projects/azerotech/lib/*.ts)",
-      "Bash(printf:*)"
+      "Bash(printf:*)",
+      "Bash(bash \"C:/Users/Shikks/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.5/skills/brainstorming/scripts/start-server.sh\" --project-dir \"C:/Users/Shikks/Projects/azerotech\")",
+      "Skill(gsd:execute-phase)"
     ]
   },
   "enabledPlugins": {

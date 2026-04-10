@@ -57,7 +57,7 @@ All routes are under `app/api/`. Public endpoints (appointments, reservations PO
 | `/api/products` | GET, POST | Public (GET), Admin (POST) | List all / create product (auto-increments numeric ID) |
 | `/api/products/[id]` | PATCH, DELETE | Admin | Update details or stock / delete |
 | `/api/lcd-stock` | GET, POST | Admin | List all / create LCD stock item |
-| `/api/lcd-stock/[id]` | PATCH, DELETE | Admin | Update name/stock / delete |
+| `/api/lcd-stock/[id]` | PATCH, DELETE | Admin | Update fields (phone_brand, lcd_brand, stock, etc.; name auto-derived) / delete |
 | `/api/customers` | GET, POST | Admin | List all / create customer (phone is unique key) |
 | `/api/customers/[id]` | PATCH, DELETE | Admin | Update / delete (cascades: unlinks appointments + reservations) |
 | `/api/customers/[id]/records` | GET, POST | Admin | List / create service records for a customer |
@@ -85,7 +85,7 @@ Generate: `node -e "const b=require('bcryptjs');console.log(b.hashSync('YOUR_PAS
 | `appointments` | `id` (UUID), `appointmentId` (AZT-…), `customerId`, `status`, `date`, `time`, `service`, `name`, `phone`, `brand`, `deviceType`, `problem?`, `repairStage?` |
 | `reservations` | `id` (UUID), `customerId`, `status`, `pickupDate`, `pickupTime`, `productName`, `productPrice`, `productId?` (numeric, for stock lookup) |
 | `products` | `id` (numeric, auto-increment), `name`, `price`, `category`, `image`, `stock` |
-| `lcd_stock` | `id` (numeric, auto-increment), `name`, `stock` |
+| `lcd_stock` | `id` (numeric, auto-increment), `name` (derived: `{phone_brand} {lcd_brand}`), `phone_brand`, `lcd_brand`, `compatible_models[]`, `anna_price?` (int\|null), `marlon_price?` (int\|null), `stock` |
 | `customers` | `_id` (ObjectId), `name`, `phone` (unique), `type`, `nameMismatches[]`, `createdAt` |
 | `serviceRecords` | `_id`, `customerId`, `date`, `service`, `device`, `cost`, `notes`, `createdAt` |
 | `revoked_sessions` | `jti`, `expiresAt` (TTL index), `revokedAt` — auto-deleted after token expiry |

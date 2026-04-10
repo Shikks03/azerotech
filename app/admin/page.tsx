@@ -3396,8 +3396,8 @@ function LcdTable({
           {/* Column header row */}
           <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
             <th scope="col" className={thBase} style={{ width: "14%" }}>Phone Brand</th>
-            <th scope="col" className={thBase} style={{ width: "11%" }}>LCD Brand</th>
             <th scope="col" className={thBase} style={{ width: "25%" }}>Compatible Models</th>
+            <th scope="col" className={thBase} style={{ width: "11%" }}>LCD Brand</th>
             <th
               scope="col"
               className={thBase}
@@ -3430,10 +3430,6 @@ function LcdTable({
                 <td className="px-3 py-3" style={{ width: "14%" }}>
                   <span className="text-white font-bold text-sm">{phoneBrand || "—"}</span>
                 </td>
-                {/* LCD Brand */}
-                <td className="px-3 py-3" style={{ width: "11%" }}>
-                  <span className="text-slate-400 text-sm">{lcdBrand || "—"}</span>
-                </td>
                 {/* Compatible Models */}
                 <td className="px-3 py-3" style={{ width: "25%" }}>
                   {models.length === 0 ? (
@@ -3463,6 +3459,10 @@ function LcdTable({
                       )}
                     </div>
                   )}
+                </td>
+                {/* LCD Brand */}
+                <td className="px-3 py-3" style={{ width: "11%" }}>
+                  <span className="text-slate-400 text-sm">{lcdBrand || "—"}</span>
                 </td>
                 {/* Anna Price */}
                 <td className="px-3 py-3 text-sm text-slate-300" style={{ width: "13%", borderLeft: "1px solid rgba(79,110,247,0.15)" }}>

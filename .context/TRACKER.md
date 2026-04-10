@@ -20,6 +20,7 @@ Track new features, bugs, and problems for the AzeroTech project.
 | 8 | Admin loading state | Spinner + "Fetching data…" screen shown while the admin panel is loading appointments, reservations, and products from the database. |
 | 9 | Admin appointment search by name | Appointment search bar now matches against both Appointment ID and customer name. |
 | 10 | Appointment number generation | Unique appointment IDs (format: `AZT-YYYYMMDD-XXXX`) are generated on booking submission, displayed on the confirmation screen, and used by the admin dashboard for lookup. |
+| 15 | LCD Stock table refactor | Replaced card grid with structured table. Extended schema: `phone_brand`, `lcd_brand`, `compatible_models[]`, `anna_price`, `marlon_price`. Stats bar, search (brand + models), sort, and inline stock controls. All code review issues resolved; manual verification passed 2026-04-03. |
 
 ---
 
@@ -58,5 +59,5 @@ Track new features, bugs, and problems for the AzeroTech project.
 
 | # | Problem | Description | Status |
 |---|---------|-------------|--------|
-| 1 | Security vulnerability audit | Review the entire site for common web vulnerabilities: input validation, API route authorization, XSS, injection, exposed secrets, insecure headers, and admin access controls. | `Todo` |
-| 2 | Merge review fixes (feature/api-auth → master) | Pre-merge code review found 14 issues: 2 security (S-I1: type-check order before attempt counter; S-I2: shared-NAT lockout bypass on success), 3 critical quality (Q-C1: indentation, Q-C2: duplicate getClientIp, Q-C3: silent loop exhaustion), 9 important quality (Q-I1: DB constant extraction to lib/db.ts, Q-I2: VALID_STATUSES to lib/constants.ts, Q-I3–Q-I9: various cleanup). All 14 fixed. Pentest verification pending before merge. | `In Progress` |
+| 1 | Security vulnerability audit | Full pentest (Sessions 1–11). All C/H/M/L findings fixed. CSP uses `unsafe-inline` (nonce-based reverted — Next.js hydration failure). Admin password must be changed before external access. | `Done` |
+| 2 | Merge review fixes (feature/api-auth → master) | Pre-merge code review found 14 issues — all 14 fixed. `feature/api-auth` merged to `master` on 2026-03-28. 3 post-merge regressions hotfixed same day. | `Done` |
