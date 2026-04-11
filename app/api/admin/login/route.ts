@@ -53,6 +53,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
   }
 
+  // If last attempt was more than 15 minutes ago, reset counter — old attempts shouldn't carry over
+  if (record?.lastAttempt && Date.now() - new Date(record.lastAttempt).getTime() > LOCK_DURATION_MS) {
+    await attempts.updateOne({ ip }, { $set: { attempts: 0 } });
+  }
+
   // H2: Increment counter atomically before bcrypt to prevent race-condition bypass
   const updated = await attempts.findOneAndUpdate(
     { ip },

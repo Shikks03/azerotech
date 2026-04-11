@@ -3360,6 +3360,7 @@ function LcdTable({
   onShowModels: (item: LcdItem) => void;
 }) {
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<number | null>(null);
+  const [confirmingStockChange, setConfirmingStockChange] = useState<{ id: number; newStock: number; direction: "increase" | "decrease" } | null>(null);
   const [editingStockId, setEditingStockId] = useState<number | null>(null);
   const [editingStockVal, setEditingStockVal] = useState("");
   const thBase = "px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500";
@@ -3476,7 +3477,7 @@ function LcdTable({
                 <td className="px-3 py-3" style={{ width: "12%" }}>
                   <div className="flex items-center gap-1.5">
                     <button
-                      onClick={() => onUpdateStock(item.id, item.stock - 1)}
+                      onClick={() => setConfirmingStockChange({ id: item.id, newStock: item.stock - 1, direction: "decrease" })}
                       disabled={item.stock <= 0}
                       aria-label="Decrease stock by 1"
                       aria-disabled={item.stock <= 0}
@@ -3505,7 +3506,7 @@ function LcdTable({
                       style={{ color }}
                     />
                     <button
-                      onClick={() => onUpdateStock(item.id, item.stock + 1)}
+                      onClick={() => setConfirmingStockChange({ id: item.id, newStock: item.stock + 1, direction: "increase" })}
                       aria-label="Increase stock by 1"
                       className="w-7 h-7 rounded-lg flex items-center justify-center transition-all"
                       style={{ background: "rgba(22,163,74,0.15)", color: "#16A34A" }}
@@ -3542,6 +3543,23 @@ function LcdTable({
         </tbody>
       </table>
 
+      {/* Stock change confirmation modal */}
+      <AnimatePresence>
+        {confirmingStockChange !== null && (() => {
+          const target = items.find(i => i.id === confirmingStockChange.id);
+          if (!target) return null;
+          return (
+            <LcdStockConfirmModal
+              key="lcd-stock-confirm-modal"
+              item={target}
+              direction={confirmingStockChange.direction}
+              onConfirm={() => { onUpdateStock(confirmingStockChange.id, confirmingStockChange.newStock); setConfirmingStockChange(null); }}
+              onClose={() => setConfirmingStockChange(null)}
+            />
+          );
+        })()}
+      </AnimatePresence>
+
       {/* Delete confirmation modal */}
       <AnimatePresence>
         {confirmingDeleteId !== null && (() => {
@@ -3557,6 +3575,86 @@ function LcdTable({
           );
         })()}
       </AnimatePresence>
+    </div>
+  );
+}
+
+function LcdStockConfirmModal({
+  item,
+  direction,
+  onConfirm,
+  onClose,
+}: {
+  item: LcdItem;
+  direction: "increase" | "decrease";
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  const ease2 = [0.22, 1, 0.36, 1] as [number, number, number, number];
+  const isDecrease = direction === "decrease";
+  const models = item.compatible_models ?? [];
+  const modelsLabel = models.length > 0
+    ? models.slice(0, 2).join(", ") + (models.length > 2 ? ` +${models.length - 2} more` : "")
+    : item.name;
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.72)", backdropFilter: "blur(6px)" }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="lcd-stock-confirm-title"
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 16 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.96, y: 16 }}
+        transition={{ duration: 0.2, ease: ease2 }}
+        className="w-full max-w-sm rounded-2xl p-6"
+        style={{ background: "#0F1225", border: "1px solid rgba(255,255,255,0.08)" }}
+      >
+        <div className="flex items-center gap-3 mb-4">
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: isDecrease ? "rgba(239,68,68,0.15)" : "rgba(22,163,74,0.15)" }}
+          >
+            {isDecrease
+              ? <Minus className="w-5 h-5" style={{ color: "#EF4444" }} />
+              : <Plus  className="w-5 h-5" style={{ color: "#16A34A" }} />
+            }
+          </div>
+          <h3
+            id="lcd-stock-confirm-title"
+            className="text-white font-bold text-base"
+          >
+            {isDecrease ? "Decrease" : "Increase"} Stock?
+          </h3>
+        </div>
+        <p className="text-slate-400 text-sm mb-6">
+          {isDecrease ? "Decreasing" : "Increasing"}{" "}
+          <span className="text-white font-semibold italic">{modelsLabel}</span>{" "}
+          by one. Are you sure?
+        </p>
+        <div className="flex gap-2 justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:bg-white/5"
+            style={{ color: "#94A3B8" }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+            style={{
+              background: isDecrease ? "rgba(239,68,68,0.18)" : "rgba(22,163,74,0.18)",
+              color: isDecrease ? "#EF4444" : "#16A34A",
+            }}
+          >
+            {isDecrease ? "Decrease" : "Increase"}
+          </button>
+        </div>
+      </motion.div>
     </div>
   );
 }
