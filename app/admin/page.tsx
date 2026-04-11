@@ -1487,8 +1487,8 @@ export default function AdminPage() {
                     return (item.phone_brand || "").toLowerCase().includes(q) || (item.lcd_brand || "").toLowerCase().includes(q) || (item.compatible_models || []).some((m) => m.toLowerCase().includes(q));
                   })
                   .sort((a, b) => {
-                    const nameA = `${a.phone_brand || ""} ${a.lcd_brand || ""}`;
-                    const nameB = `${b.phone_brand || ""} ${b.lcd_brand || ""}`;
+                    const nameA = [...(a.compatible_models || [])].sort()[0] || `${a.phone_brand || ""} ${a.lcd_brand || ""}`;
+                    const nameB = [...(b.compatible_models || [])].sort()[0] || `${b.phone_brand || ""} ${b.lcd_brand || ""}`;
                     if (lcdSort === "name-asc")  return nameA.localeCompare(nameB);
                     if (lcdSort === "name-desc") return nameB.localeCompare(nameA);
                     if (lcdSort === "high-stock") return b.stock - a.stock;
