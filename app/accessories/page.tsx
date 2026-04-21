@@ -82,9 +82,16 @@ export default function Accessories() {
 
   useEffect(() => {
     fetch("/api/products")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`API error ${r.status}`);
+        return r.json();
+      })
       .then((data) => {
-        setProducts(data);
+        setProducts(Array.isArray(data) ? data : []);
+        setLoadingProducts(false);
+      })
+      .catch((err) => {
+        console.error("Failed to load products:", err);
         setLoadingProducts(false);
       });
   }, []);

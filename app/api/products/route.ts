@@ -7,18 +7,23 @@ import { DB } from "@/lib/db";
 const COL = "products";
 
 export async function GET(req: NextRequest) {
-  // B-3: Strip stock from public responses — admins still receive full data
-  const isAdmin = !(await requireAdmin(req));
-  const client = await clientPromise;
-  const docs = await client
-    .db(DB)
-    .collection(COL)
-    .find({})
-    .project(isAdmin ? { _id: 0 } : { _id: 0, stock: 0 })
-    .sort({ id: 1 })
-    .limit(500)
-    .toArray();
-  return NextResponse.json(docs);
+  try {
+    // B-3: Strip stock from public responses — admins still receive full data
+    const isAdmin = !(await requireAdmin(req));
+    const client = await clientPromise;
+    const docs = await client
+      .db(DB)
+      .collection(COL)
+      .find({})
+      .project(isAdmin ? { _id: 0 } : { _id: 0, stock: 0 })
+      .sort({ id: 1 })
+      .limit(500)
+      .toArray();
+    return NextResponse.json(docs);
+  } catch (err) {
+    console.error("[GET /api/products]", err);
+    return NextResponse.json({ error: "Failed to fetch products" }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
