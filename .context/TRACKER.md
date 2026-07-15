@@ -41,6 +41,9 @@ Track new features, bugs, and problems for the AzeroTech project.
 | 12 | Product visibility toggle (Active/Hidden) | Suggestion | Add an `active` boolean field to products. Admin can toggle a product as hidden without deleting it — hidden products don't appear on the public accessories page. Useful for seasonal or temporarily unavailable items. | Medium |
 | 13 | Inventory search & category filter | Suggestion | Add a search box and category dropdown to the admin Inventory tab so staff can quickly find products in a large catalog. | Low |
 | 14 | Low-stock threshold alert | Suggestion | Allow admin to set a per-product low-stock threshold. Items below the threshold show a distinct warning badge and are surfaced at the top of the inventory grid. | Low |
+| 15 | Customer reviews backend | Redesign | Homepage reviews are static (hardcoded in the ReviewCard usage on `app/page.tsx`). Wire to a real reviews source/API. | Low |
+| 16 | Contact message form backend | Redesign | Contact "Send a Message" form (`components/ContactForm.tsx`) is static — it opens Messenger with the message copied to clipboard. Add a real submit endpoint if desired. | Medium |
+| 17 | Service prices data source | Redesign | Services page prices/times are hardcoded. Move to DB/config if they change often. | Low |
 
 ---
 
