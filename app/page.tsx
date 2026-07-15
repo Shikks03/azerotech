@@ -20,6 +20,7 @@ import { fadeUp, fadeUpView } from "@/lib/motion";
 import SectionHeading from "@/components/SectionHeading";
 import ServiceTile from "@/components/ServiceTile";
 import FeatureTile from "@/components/FeatureTile";
+import RepairTrackerCTA from "@/components/RepairTrackerCTA";
 
 export default function Home() {
   return (
@@ -218,6 +219,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <RepairTrackerCTA />
 
       {/* ─── LOCATIONS ─── */}
       <section className="py-16 md:py-24 relative">

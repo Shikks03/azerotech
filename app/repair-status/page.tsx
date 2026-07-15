@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
 import { Search, CheckCircle2, Clock, Wrench, PackageCheck } from "lucide-react";
 import { ease } from "@/lib/motion";
@@ -68,15 +69,15 @@ function StageTracker({ currentStage }: { currentStage: string | null }) {
   );
 }
 
-export default function RepairStatusPage() {
+function RepairStatusInner() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<RepairResult | null>(null);
   const [error, setError] = useState("");
 
-  const handleSearch = async (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent, override?: string) => {
     e.preventDefault();
-    const trimmed = query.trim();
+    const trimmed = (override ?? query).trim();
     if (!trimmed) return;
 
     setLoading(true);
@@ -103,6 +104,16 @@ export default function RepairStatusPage() {
       setLoading(false);
     }
   };
+
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const ref = searchParams.get("ref");
+    if (ref) {
+      setQuery(ref);
+      handleSearch({ preventDefault: () => {} } as React.FormEvent, ref);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div
@@ -224,5 +235,13 @@ export default function RepairStatusPage() {
         )}
       </motion.div>
     </div>
+  );
+}
+
+export default function RepairStatusPage() {
+  return (
+    <Suspense fallback={null}>
+      <RepairStatusInner />
+    </Suspense>
   );
 }
