@@ -20,8 +20,8 @@ are already connected and stay untouched.
 | Visual direction | Implement the Stitch output faithfully, backgrounds included |
 | Homepage structure | The **"Full Homepage"** section flow |
 | Homepage hero | Use the **V1 hero** (*"We Fix What Matters Most"* + neon device art + Book Appointment / Call Shop / Messenger) as the top section |
-| Background | **V1-b** — dark-blue gradient with floating 3D shapes (torus, pyramid, cubes) |
-| 3D shapes | Pre-rendered **transparent PNG** assets, gently animated with CSS/motion |
+| Background | **V1-b** dark-blue gradient. Ships **without** the floating 3D shapes for now. |
+| 3D shapes | **Deferred.** User will supply transparent PNG assets later; `PageBackground` is built to slot them in without rework. Not a blocker. |
 | Page scope | **All public pages** (Admin excluded) |
 | No-backend content | Reviews, contact "Send a Message" form, service prices ship **static now**, logged as backend-later follow-ups |
 | Implementation approach | **Foundation-first, then page-by-page** |
@@ -58,7 +58,7 @@ Each is a small, independently understandable unit composed by the pages.
 
 | Component | Responsibility | Depends on |
 |-----------|----------------|------------|
-| `PageBackground` | Fixed layer: V1-b gradient + floating 3D-shape PNGs, gently animated, `pointer-events-none`, behind content | shape PNG assets |
+| `PageBackground` | Fixed layer: V1-b dark-blue gradient, `pointer-events-none`, behind content. Built with a slot for floating 3D-shape PNGs (deferred) so they drop in later without rework | globals tokens |
 | `GlassCard` | Frosted panel wrapper (`.glass`) | globals tokens |
 | `ServiceTile` / `FeatureTile` | Icon + title + copy tile for grids | `.tile` |
 | `SectionHeading` | Centered title + subtitle | — |
@@ -90,9 +90,10 @@ Ship static now, log follow-ups in `.context/TRACKER.md`:
 3. Per-service prices/times (services page) — hardcoded content.
 
 ## 7. Risks / dependencies
-- **3D shape assets** — need transparent PNGs of torus/pyramid/cubes. Stitch only
-  exports a flat screenshot, so these must be produced (generate or user-supplied).
-  This is the first task's blocking dependency.
+- **3D shape assets (deferred, non-blocking)** — the floating torus/pyramid/cubes are
+  cut from the initial build. The user is producing the transparent PNGs and will
+  supply them later. `PageBackground` ships with just the V1-b gradient but is built
+  to accept the shape layer without rework. Logged as a follow-up in `.context/TRACKER.md`.
 - **Dark-conversion regressions** — hunt down page-specific light styling
   (hardcoded `text-black`, white backgrounds) during each page's conversion.
 - **`backdrop-blur` performance** — many glass panels + floating shapes; keep shape
@@ -100,7 +101,7 @@ Ship static now, log follow-ups in `.context/TRACKER.md`:
 
 ## 8. Implementation order
 1. **Foundation** — dark tokens + `.glass`/`.tile` utilities in `globals.css`;
-   produce 3D shape assets; build `PageBackground`.
+   build `PageBackground` (V1-b gradient only; shape slot left for later).
 2. **Global shell** — rebuild `Header` + `Footer` (dark).
 3. **Primitives** — `GlassCard`, `ServiceTile`/`FeatureTile`, `SectionHeading`.
 4. **Home** → **Services** → **Contact** (designed pages, high fidelity).
