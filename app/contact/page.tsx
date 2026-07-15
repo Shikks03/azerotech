@@ -8,6 +8,7 @@ import {
   MessageCircle,
   MapPin,
 } from "lucide-react";
+import { fadeUp, fadeUpView } from "@/lib/motion";
 
 function InstagramIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return (
@@ -28,21 +29,6 @@ function InstagramIcon({ className, style }: { className?: string; style?: React
     </svg>
   );
 }
-
-const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
-
-const fadeUp = (delay = 0) => ({
-  initial: { opacity: 0, y: 28 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.55, delay, ease },
-});
-
-const fadeUpView = (delay = 0) => ({
-  initial: { opacity: 0, y: 28 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true },
-  transition: { duration: 0.55, delay, ease },
-});
 
 const today = new Date().toLocaleDateString("en-US", { weekday: "long" });
 

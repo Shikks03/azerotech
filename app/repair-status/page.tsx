@@ -3,8 +3,7 @@
 import { useState } from "react";
 import { motion } from "motion/react";
 import { Search, CheckCircle2, Clock, Wrench, PackageCheck } from "lucide-react";
-
-const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
+import { ease } from "@/lib/motion";
 
 const STAGES = [
   { key: "Device Received",   label: "Received",     Icon: PackageCheck },
