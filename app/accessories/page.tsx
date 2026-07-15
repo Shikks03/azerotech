@@ -249,18 +249,16 @@ export default function Accessories() {
             Quality tech accessories in stock — reserve online and pick up in-store.
           </motion.p>
         </div>
-
-        <div className="absolute bottom-0 left-0 right-0 overflow-hidden leading-none">
-          <svg viewBox="0 0 1440 64" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" className="w-full h-16">
-            <path d="M0 64L1440 64L1440 32C1200 0 240 64 0 32L0 64Z" fill="#F7F8FF" />
-          </svg>
-        </div>
       </section>
 
       {/* ─── FILTER BAR ─── */}
       <div
-        className="sticky top-16 z-40 border-b border-slate-200"
-        style={{ background: "rgba(247,248,255,0.95)", backdropFilter: "blur(12px)" }}
+        className="sticky top-16 z-40"
+        style={{
+          background: "rgba(8,11,26,0.85)",
+          backdropFilter: "blur(12px)",
+          borderBottom: "1px solid rgba(255,255,255,0.08)",
+        }}
       >
         <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 py-4">
           <div className="flex overflow-x-auto gap-2 pb-0.5 scrollbar-hide">
@@ -279,9 +277,9 @@ export default function Accessories() {
                           boxShadow: "0 4px 12px rgba(139,92,246,0.3)",
                         }
                       : {
-                          background: "white",
-                          color: "#475569",
-                          border: "1px solid #E2E8F0",
+                          background: "rgba(255,255,255,0.06)",
+                          color: "#94A3B8",
+                          border: "1px solid rgba(255,255,255,0.12)",
                         }
                   }
                 >
@@ -294,18 +292,18 @@ export default function Accessories() {
       </div>
 
       {/* ─── PRODUCTS GRID ─── */}
-      <section className="py-12 md:py-16" style={{ background: "#F7F8FF" }}>
+      <section className="relative py-12 md:py-16">
         <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16">
           {loadingProducts ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="bg-white rounded-2xl overflow-hidden border border-slate-100 animate-pulse">
-                  <div className="w-full h-48 bg-slate-200" />
+                <div key={i} className="rounded-2xl overflow-hidden animate-pulse" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                  <div className="w-full h-48 bg-white/5" />
                   <div className="p-5 space-y-3">
-                    <div className="h-3 w-16 bg-slate-200 rounded-full" />
-                    <div className="h-4 w-3/4 bg-slate-200 rounded-full" />
-                    <div className="h-5 w-1/3 bg-slate-200 rounded-full" />
-                    <div className="h-10 bg-slate-200 rounded-xl" />
+                    <div className="h-3 w-16 rounded-full bg-white/5" />
+                    <div className="h-4 w-3/4 rounded-full bg-white/5" />
+                    <div className="h-5 w-1/3 rounded-full bg-white/5" />
+                    <div className="h-10 rounded-xl bg-white/5" />
                   </div>
                 </div>
               ))}
@@ -323,11 +321,11 @@ export default function Accessories() {
                   <motion.div
                     key={product.id}
                     {...fadeUpView(idx * 0.05)}
-                    className="flex flex-col bg-white rounded-2xl overflow-hidden border border-slate-100 group hover:border-transparent hover:shadow-xl transition-all duration-300"
-                    style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.05)", opacity: outOfStock ? 0.75 : 1 }}
+                    className="flex flex-col glass glass-hover rounded-2xl overflow-hidden group transition-all duration-300"
+                    style={{ opacity: outOfStock ? 0.75 : 1 }}
                   >
                     {/* Product Image */}
-                    <div className="relative w-full h-48 overflow-hidden bg-slate-50">
+                    <div className="relative w-full h-48 overflow-hidden" style={{ background: "rgba(255,255,255,0.04)" }}>
                       {product.image ? (
                         <Image
                           src={product.image}
@@ -338,8 +336,8 @@ export default function Accessories() {
                           unoptimized
                         />
                       ) : (
-                        <div className="absolute inset-0 flex items-center justify-center bg-slate-100">
-                          <span className="text-slate-300 text-xs font-medium">No image</span>
+                        <div className="absolute inset-0 flex items-center justify-center" style={{ background: "rgba(255,255,255,0.04)" }}>
+                          <span className="text-slate-500 text-xs font-medium">No image</span>
                         </div>
                       )}
                       {outOfStock && (
@@ -362,7 +360,7 @@ export default function Accessories() {
                       >
                         {product.category}
                       </span>
-                      <p className="text-[#0F172A] font-bold text-base leading-snug mb-1 flex-1">
+                      <p className="text-white font-bold text-base leading-snug mb-1 flex-1">
                         {product.name}
                       </p>
                       <p className="text-xl font-bold mb-4" style={{ color: outOfStock ? "#94A3B8" : "#4F6EF7" }}>
@@ -374,7 +372,7 @@ export default function Accessories() {
                         className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold text-sm transition-all"
                         style={
                           outOfStock
-                            ? { background: "#F1F5F9", color: "#94A3B8", cursor: "not-allowed" }
+                            ? { background: "rgba(255,255,255,0.06)", color: "#94A3B8", cursor: "not-allowed", border: "1px solid rgba(255,255,255,0.08)" }
                             : { background: "linear-gradient(135deg, #8B5CF6, #A78BFA)", color: "white", boxShadow: "0 4px 14px rgba(139,92,246,0.3)" }
                         }
                       >
@@ -454,28 +452,32 @@ export default function Accessories() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 16 }}
               transition={{ duration: 0.25, ease }}
-              className="bg-white rounded-2xl w-full max-w-md overflow-hidden"
-              style={{ boxShadow: "0 24px 64px rgba(0,0,0,0.4)" }}
+              className="rounded-2xl w-full max-w-md overflow-hidden"
+              style={{
+                background: "#0F1535",
+                border: "1px solid rgba(255,255,255,0.12)",
+                boxShadow: "0 24px 64px rgba(0,0,0,0.4)",
+              }}
             >
               {reserved ? (
                 /* Success state */
                 <div className="flex flex-col items-center text-center p-10">
                   <div
                     className="w-14 h-14 rounded-full flex items-center justify-center mb-5"
-                    style={{ background: "#DCFCE7" }}
+                    style={{ background: "rgba(22,163,74,0.2)" }}
                   >
-                    <ShoppingBag className="w-7 h-7" style={{ color: "#16A34A" }} />
+                    <ShoppingBag className="w-7 h-7" style={{ color: "#4ADE80" }} />
                   </div>
-                  <h3 className="text-xl font-bold text-[#0F172A] mb-2">Reservation Confirmed!</h3>
-                  <p className="text-slate-500 text-sm mb-2">
-                    <span className="font-semibold text-[#0F172A]">{reservingProduct.name}</span> is reserved for you.
+                  <h3 className="text-xl font-bold text-white mb-2">Reservation Confirmed!</h3>
+                  <p className="text-slate-400 text-sm mb-2">
+                    <span className="font-semibold text-white">{reservingProduct.name}</span> is reserved for you.
                   </p>
-                  <p className="text-slate-500 text-sm mb-8">
+                  <p className="text-slate-400 text-sm mb-8">
                     Pickup on{" "}
-                    <span className="font-semibold text-[#0F172A]">
+                    <span className="font-semibold text-white">
                       {new Date(formData.pickupDate + "T00:00:00").toLocaleDateString("en-PH", { month: "long", day: "numeric", year: "numeric" })}
                     </span>{" "}
-                    at <span className="font-semibold text-[#0F172A]">{formData.pickupTime}</span>.
+                    at <span className="font-semibold text-white">{formData.pickupTime}</span>.
                   </p>
                   <button
                     onClick={closeModal}
@@ -489,14 +491,14 @@ export default function Accessories() {
                 /* Form state */
                 <>
                   {/* Modal Header */}
-                  <div className="flex items-center justify-between px-7 py-5 border-b border-slate-100">
+                  <div className="flex items-center justify-between px-7 py-5" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#8B5CF6" }}>Reserve for Pickup</p>
-                      <h3 className="text-[#0F172A] font-bold text-lg leading-tight">{reservingProduct.name}</h3>
+                      <h3 className="text-white font-bold text-lg leading-tight">{reservingProduct.name}</h3>
                     </div>
                     <button
                       onClick={closeModal}
-                      className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 transition-colors"
+                      className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 transition-colors hover:bg-white/10"
                     >
                       <X className="w-5 h-5" />
                     </button>
@@ -507,7 +509,7 @@ export default function Accessories() {
                     {/* First Name + Last Name */}
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-sm font-semibold text-[#0F172A] mb-1.5">
+                        <label className="block text-sm font-semibold text-white mb-1.5">
                           First Name <span style={{ color: "#EF4444" }}>*</span>
                         </label>
                         <input
@@ -516,13 +518,14 @@ export default function Accessories() {
                           value={formData.firstName}
                           onChange={handleInputChange}
                           placeholder="First name"
-                          className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none text-[#0F172A] placeholder:text-slate-400 text-sm"
+                          className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm placeholder:text-slate-500"
+                          style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "#E2E8F0" }}
                           onFocus={(e) => (e.target.style.borderColor = "#8B5CF6")}
-                          onBlur={(e) => (e.target.style.borderColor = "#E2E8F0")}
+                          onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.12)")}
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-semibold text-[#0F172A] mb-1.5">
+                        <label className="block text-sm font-semibold text-white mb-1.5">
                           Last Name <span style={{ color: "#EF4444" }}>*</span>
                         </label>
                         <input
@@ -531,16 +534,17 @@ export default function Accessories() {
                           value={formData.lastName}
                           onChange={handleInputChange}
                           placeholder="Last name"
-                          className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none text-[#0F172A] placeholder:text-slate-400 text-sm"
+                          className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm placeholder:text-slate-500"
+                          style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "#E2E8F0" }}
                           onFocus={(e) => (e.target.style.borderColor = "#8B5CF6")}
-                          onBlur={(e) => (e.target.style.borderColor = "#E2E8F0")}
+                          onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.12)")}
                         />
                       </div>
                     </div>
 
                     {/* Phone */}
                     <div>
-                      <label className="block text-sm font-semibold text-[#0F172A] mb-1.5">
+                      <label className="block text-sm font-semibold text-white mb-1.5">
                         Phone Number <span style={{ color: "#EF4444" }}>*</span>
                       </label>
                       <input
@@ -550,10 +554,10 @@ export default function Accessories() {
                         onChange={handleInputChange}
                         placeholder="09XXXXXXXXX"
                         maxLength={11}
-                        className="w-full px-4 py-3 border-2 rounded-xl focus:outline-none text-[#0F172A] placeholder:text-slate-400 text-sm transition-colors"
-                        style={{ borderColor: phoneError ? "#EF4444" : "#E2E8F0" }}
+                        className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm transition-colors placeholder:text-slate-500"
+                        style={{ background: "rgba(255,255,255,0.06)", border: `1px solid ${phoneError ? "#EF4444" : "rgba(255,255,255,0.12)"}`, color: "#E2E8F0" }}
                         onFocus={(e) => { if (!phoneError) e.target.style.borderColor = "#8B5CF6"; }}
-                        onBlur={(e) => { if (!phoneError) e.target.style.borderColor = "#E2E8F0"; }}
+                        onBlur={(e) => { if (!phoneError) e.target.style.borderColor = "rgba(255,255,255,0.12)"; }}
                       />
                       {phoneError && (
                         <p className="text-xs mt-1 font-medium" style={{ color: "#EF4444" }}>{phoneError}</p>
@@ -563,7 +567,7 @@ export default function Accessories() {
                     {/* Date + Time */}
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-sm font-semibold text-[#0F172A] mb-1.5">
+                        <label className="block text-sm font-semibold text-white mb-1.5">
                           Pickup Date <span style={{ color: "#EF4444" }}>*</span>
                         </label>
                         <input
@@ -573,26 +577,28 @@ export default function Accessories() {
                           onChange={handleInputChange}
                           min={getMinDate()}
                           max={getMaxDateReservation()}
-                          className="w-full px-3 py-3 border-2 border-slate-200 rounded-xl focus:outline-none text-[#0F172A] text-sm"
+                          className="w-full px-3 py-3 rounded-xl focus:outline-none text-sm"
+                          style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "#E2E8F0" }}
                           onFocus={(e) => (e.target.style.borderColor = "#8B5CF6")}
-                          onBlur={(e) => (e.target.style.borderColor = "#E2E8F0")}
+                          onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.12)")}
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-semibold text-[#0F172A] mb-1.5">
+                        <label className="block text-sm font-semibold text-white mb-1.5">
                           Pickup Time <span style={{ color: "#EF4444" }}>*</span>
                         </label>
                         <select
                           name="pickupTime"
                           value={formData.pickupTime}
                           onChange={handleInputChange}
-                          className="w-full px-3 py-3 border-2 border-slate-200 rounded-xl focus:outline-none text-[#0F172A] bg-white text-sm"
+                          className="w-full px-3 py-3 rounded-xl focus:outline-none text-sm"
+                          style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "#E2E8F0" }}
                           onFocus={(e) => (e.target.style.borderColor = "#8B5CF6")}
-                          onBlur={(e) => (e.target.style.borderColor = "#E2E8F0")}
+                          onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.12)")}
                         >
-                          <option value="">Select</option>
+                          <option value="" style={{ background: "#0F1535" }}>Select</option>
                           {pickupTimes.map((t) => (
-                            <option key={t} value={t}>{t}</option>
+                            <option key={t} value={t} style={{ background: "#0F1535" }}>{t}</option>
                           ))}
                         </select>
                       </div>
@@ -603,7 +609,8 @@ export default function Accessories() {
                       <button
                         type="button"
                         onClick={closeModal}
-                        className="flex items-center gap-1.5 px-5 py-3 rounded-xl font-semibold text-sm border-2 border-slate-200 text-slate-600 transition-all hover:bg-slate-50"
+                        className="flex items-center gap-1.5 px-5 py-3 rounded-xl font-semibold text-sm transition-all hover:bg-white/10"
+                        style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "#94A3B8" }}
                       >
                         <ArrowLeft className="w-4 h-4 shrink-0" /> Cancel
                       </button>
