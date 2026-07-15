@@ -39,6 +39,25 @@ are already connected and stay untouched.
   accent colors (`--indigo-electric #4F6EF7`, `--indigo-light #6B7FFF`) already match
   the Stitch neon blue.
 
+## 3b. Codebase reality (discovered during planning — supersedes assumptions in §3)
+
+- Pages **do not use** the `globals.css` design tokens. Each page is hand-styled with
+  **inline colors** and is an **alternating dark/light composition**: dark hero/CTA
+  (`#080B1A` / `#0F1535`) + **light content sections** (`#F7F8FF`, `bg-white` cards).
+- The homepage (`app/page.tsx`) **already implements the V1 hero** ("We Fix What
+  Matters Most", gradient text, Book Appointment / Call Shop / Messenger, trust badges,
+  glow orbs, grid decoration) and an existing two-branch map/Locations section.
+- The **Footer is already dark** (`#080B1A`). Only the **Header is light** and needs conversion.
+- `fadeUp` / `fadeUpView` motion helpers and the section-heading markup are **duplicated
+  in every page** — prime candidates for extraction.
+
+**Consequence:** the work is a **recolor-to-dark-glass + shared-primitive extraction +
+two new homepage sections** pass, NOT a from-scratch rebuild. Flipping `globals.css`
+`body` to dark is still done (so non-overridden surfaces are dark and future code
+inherits the dark base), but the bulk of the effort is per-page conversion of the
+light content sections to dark glass, DRY-ing the repeated helpers into `lib/motion.ts`
+and shared components, and adding the Repair Tracker + Customer Reviews sections.
+
 ## 4. Architecture
 
 ### 4.1 Design-system foundation (`app/globals.css`)
