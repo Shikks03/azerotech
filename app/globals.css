@@ -159,13 +159,14 @@
   }
 
   .glass-hover {
-    transition: background 0.3s ease, border-color 0.3s ease, transform 0.3s ease;
+    transition: background 0.3s ease, border-color 0.3s ease;
   }
   .glass-hover:hover {
     background: var(--surface-glass-hover);
     border-color: var(--border-glass-accent);
   }
 
+  /* Opaque (non-blurred) variant of .glass — use when a backdrop-blur is unwanted */
   .tile {
     background: var(--surface-glass);
     border: 1px solid var(--border-glass);
@@ -216,6 +217,11 @@
 .animate-float { animation: floatY 8s ease-in-out infinite; }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-float { animation: none; }
+  .animate-float,
+  .animate-fade-in,
+  .animate-slide-up,
+  .animate-slide-left,
+  .animate-slide-right,
+  .animate-pulse-slow { animation: none; }
   * { scroll-behavior: auto !important; }
 }
