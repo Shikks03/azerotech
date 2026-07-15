@@ -22,18 +22,17 @@ export default function ContactForm() {
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setForm((f) => ({ ...f, [field]: e.target.value }));
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const composed =
       `Name: ${form.name}\n` +
       `Email: ${form.email}\n` +
       `Subject: ${form.subject}\n\n` +
       `${form.message}`;
-    try {
-      await navigator.clipboard.writeText(composed);
-    } catch {
-      // Clipboard may be unavailable (e.g. insecure context) — proceed anyway.
-    }
+    // Copy the composed message so the user can paste it into Messenger.
+    // Fire-and-forget: must not block the synchronous window.open below,
+    // or popup blockers may prevent Messenger from opening.
+    navigator.clipboard?.writeText(composed).catch(() => {});
     window.open(MESSENGER_URL, "_blank", "noopener,noreferrer");
     setSent(true);
   };
