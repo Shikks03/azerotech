@@ -273,17 +273,21 @@ export default function BookAppointment() {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.45, ease }}
-          className="w-full max-w-lg bg-white rounded-2xl p-10 text-center"
-          style={{ boxShadow: "0 24px 64px rgba(0,0,0,0.35)" }}
+          className="w-full max-w-lg rounded-2xl p-10 text-center"
+          style={{
+            background: "rgba(255,255,255,0.05)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            boxShadow: "0 24px 64px rgba(0,0,0,0.35)",
+          }}
         >
           <div
             className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6"
-            style={{ background: "#DCFCE7" }}
+            style={{ background: "rgba(22,163,74,0.15)" }}
           >
-            <CheckCircle2 className="w-8 h-8" style={{ color: "#16A34A" }} />
+            <CheckCircle2 className="w-8 h-8" style={{ color: "#4ADE80" }} />
           </div>
-          <h1 className="text-2xl font-bold text-[#0F172A] mb-2">Appointment Confirmed!</h1>
-          <p className="text-slate-500 mb-5 text-sm">
+          <h1 className="text-2xl font-bold text-white mb-2">Appointment Confirmed!</h1>
+          <p className="text-slate-400 mb-5 text-sm">
             Please arrive at your selected time. Need to reschedule? Call us.
           </p>
 
@@ -304,7 +308,7 @@ export default function BookAppointment() {
                 type="button"
                 onClick={() => navigator.clipboard.writeText(confirmedId)}
                 title="Copy to clipboard"
-                className="ml-0.5 p-1 rounded-md hover:bg-indigo-50 transition-colors"
+                className="ml-0.5 p-1 rounded-md hover:bg-white/10 transition-colors"
               >
                 <Copy className="w-3.5 h-3.5" />
               </button>
@@ -313,7 +317,7 @@ export default function BookAppointment() {
 
           <div
             className="rounded-xl p-6 text-left mb-8 space-y-3"
-            style={{ background: "#F7F8FF", border: "1px solid #E2E8F0" }}
+            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
           >
             {[
               ["Service",    formData.service],
@@ -324,9 +328,9 @@ export default function BookAppointment() {
               ["Device",     `${formData.brand} ${formData.deviceType}`],
               ...(formData.problem ? [["Problem", formData.problem] as [string, string]] : []),
             ].map(([k, v]) => (
-              <div key={k} className="flex justify-between gap-4 text-sm">
-                <span className="text-slate-500 font-medium shrink-0">{k}</span>
-                <span className="text-[#0F172A] font-semibold text-right">{v}</span>
+              <div key={k} className="flex justify-between gap-4 text-sm" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                <span className="text-slate-400 font-medium shrink-0 pb-2">{k}</span>
+                <span className="text-white font-semibold text-right pb-2">{v}</span>
               </div>
             ))}
           </div>
@@ -341,7 +345,8 @@ export default function BookAppointment() {
             </Link>
             <Link
               href="/accessories"
-              className="flex-1 inline-flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold transition-all hover:bg-slate-100 border border-slate-200 text-[#0F172A]"
+              className="flex-1 inline-flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold transition-all text-slate-300"
+              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}
             >
               Browse Accessories
             </Link>
@@ -380,7 +385,7 @@ export default function BookAppointment() {
           style={{ opacity: 0.08, background: "radial-gradient(circle, #06B6D4, transparent 70%)" }}
         />
 
-        <div className="relative flex flex-col items-center justify-center text-center px-6 sm:px-10 lg:px-16 py-24 pb-36 max-w-4xl mx-auto w-full">
+        <div className="relative flex flex-col items-center justify-center text-center px-6 sm:px-10 lg:px-16 py-24 max-w-4xl mx-auto w-full">
           <motion.div {...fadeUp(0)} className="mb-10">
             <span
               className="inline-flex items-center gap-2 border rounded-full px-5 py-2.5 text-sm"
@@ -420,16 +425,10 @@ export default function BookAppointment() {
             Schedule your device repair or checkup in just a few steps.
           </motion.p>
         </div>
-
-        <div className="absolute bottom-0 left-0 right-0 overflow-hidden leading-none">
-          <svg viewBox="0 0 1440 64" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" className="w-full h-16">
-            <path d="M0 64L1440 64L1440 32C1200 0 240 64 0 32L0 64Z" fill="#F7F8FF" />
-          </svg>
-        </div>
       </section>
 
       {/* ─── FORM ─── */}
-      <section className="py-16 md:py-24" style={{ background: "#F7F8FF" }}>
+      <section className="relative py-16 md:py-24">
         <div className="max-w-2xl mx-auto px-6 sm:px-10">
 
           {/* Stepper */}
@@ -443,7 +442,7 @@ export default function BookAppointment() {
                       style={
                         step >= s.n
                           ? { background: "linear-gradient(135deg, #4F6EF7, #6B84FF)", color: "white", boxShadow: "0 4px 12px rgba(79,110,247,0.35)" }
-                          : { background: "#E2E8F0", color: "#94A3B8" }
+                          : { background: "rgba(255,255,255,0.12)", color: "#94A3B8" }
                       }
                     >
                       {s.n}
@@ -457,7 +456,7 @@ export default function BookAppointment() {
                   </div>
                   {idx < steps.length - 1 && (
                     <div className="flex-1 h-0.5 mx-2 mb-5 rounded-full transition-all duration-300"
-                      style={{ background: step > s.n ? "#4F6EF7" : "#E2E8F0" }}
+                      style={{ background: step > s.n ? "#4F6EF7" : "rgba(255,255,255,0.12)" }}
                     />
                   )}
                 </div>
@@ -468,8 +467,12 @@ export default function BookAppointment() {
           {/* Card */}
           <motion.div
             {...fadeUpView(0.08)}
-            className="bg-white rounded-2xl p-8 md:p-10 border border-slate-100"
-            style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}
+            className="rounded-2xl p-8 md:p-10"
+            style={{
+              background: "rgba(255,255,255,0.05)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              boxShadow: "0 4px 24px rgba(0,0,0,0.25)",
+            }}
           >
             <form onSubmit={handleSubmit}>
 
@@ -477,7 +480,7 @@ export default function BookAppointment() {
               {step === 1 && (
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: "#4F6EF7" }}>Step 1 of 4</p>
-                  <h2 className="text-[#0F172A] text-2xl font-bold mb-6">Select a Service</h2>
+                  <h2 className="text-white text-2xl font-bold mb-6">Select a Service</h2>
                   <div className="flex flex-col gap-4">
                     {services.map((svc) => {
                       const selected = formData.service === svc.label;
@@ -489,13 +492,13 @@ export default function BookAppointment() {
                           className="flex items-center gap-5 text-left rounded-xl px-6 py-5 border-2 transition-all duration-200"
                           style={
                             selected
-                              ? { borderColor: svc.color, background: svc.bg }
-                              : { borderColor: "#E2E8F0", background: "white" }
+                              ? { borderColor: svc.color, background: `${svc.color}18` }
+                              : { borderColor: "rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)" }
                           }
                         >
                           <div
                             className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
-                            style={{ background: svc.bg }}
+                            style={{ background: selected ? `${svc.color}22` : "rgba(255,255,255,0.08)" }}
                           >
                             <CheckCircle2
                               className="w-5 h-5"
@@ -503,8 +506,8 @@ export default function BookAppointment() {
                             />
                           </div>
                           <div>
-                            <p className="font-bold text-[#0F172A]">{svc.label}</p>
-                            <p className="text-slate-500 text-sm">{svc.desc}</p>
+                            <p className="font-bold text-white">{svc.label}</p>
+                            <p className="text-slate-400 text-sm">{svc.desc}</p>
                           </div>
                         </button>
                       );
@@ -518,39 +521,39 @@ export default function BookAppointment() {
                 <div className="space-y-7">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: "#4F6EF7" }}>Step 2 of 4</p>
-                    <h2 className="text-[#0F172A] text-2xl font-bold">Choose Date & Time</h2>
+                    <h2 className="text-white text-2xl font-bold">Choose Date & Time</h2>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-[#0F172A] mb-3">
+                    <label className="block text-sm font-semibold text-slate-300 mb-3">
                       <CalendarDays className="inline w-4 h-4 mr-1.5 mb-0.5" style={{ color: "#4F6EF7" }} />
                       Select Date
                     </label>
 
                     {/* Calendar */}
-                    <div className="rounded-2xl overflow-hidden border-2" style={{ borderColor: "#E2E8F0" }}>
+                    <div className="rounded-2xl overflow-hidden border-2" style={{ borderColor: "rgba(255,255,255,0.12)" }}>
 
                       {/* Month header */}
                       <div
                         className="flex items-center justify-between px-4 py-3"
-                        style={{ background: "#F7F8FF", borderBottom: "1px solid #E2E8F0" }}
+                        style={{ background: "rgba(255,255,255,0.06)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}
                       >
                         <button
                           type="button"
                           onClick={prevMonth}
                           disabled={!canGoPrevMonth()}
-                          className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors disabled:opacity-25 disabled:cursor-not-allowed"
+                          className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-white/10 transition-colors disabled:opacity-25 disabled:cursor-not-allowed"
                         >
                           <ChevronLeft className="w-4 h-4" />
                         </button>
-                        <span className="font-bold text-[#0F172A] text-sm">
+                        <span className="font-bold text-white text-sm">
                           {monthNames[calMonth.month]} {calMonth.year}
                         </span>
                         <button
                           type="button"
                           onClick={nextMonth}
                           disabled={!canGoNextMonth()}
-                          className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors disabled:opacity-25 disabled:cursor-not-allowed"
+                          className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-white/10 transition-colors disabled:opacity-25 disabled:cursor-not-allowed"
                         >
                           <ChevronRight className="w-4 h-4" />
                         </button>
@@ -583,7 +586,7 @@ export default function BookAppointment() {
                               type="button"
                               disabled={disabled}
                               onClick={() => handleDateSelect(isoDate)}
-                              className="aspect-square rounded-xl text-sm font-medium flex items-center justify-center transition-all duration-150 hover:bg-indigo-50"
+                              className="aspect-square rounded-xl text-sm font-medium flex items-center justify-center transition-all duration-150 hover:bg-white/10"
                               style={
                                 selected
                                   ? {
@@ -592,8 +595,8 @@ export default function BookAppointment() {
                                       boxShadow: "0 4px 12px rgba(79,110,247,0.35)",
                                     }
                                   : disabled
-                                  ? { color: "#D1D5DB", cursor: "not-allowed" }
-                                  : { color: "#0F172A" }
+                                  ? { color: "#D1D5DB", cursor: "not-allowed", opacity: 0.3 }
+                                  : { color: "#E2E8F0" }
                               }
                             >
                               {day}
@@ -616,7 +619,7 @@ export default function BookAppointment() {
 
                   {formData.date && (
                     <div>
-                      <label className="block text-sm font-semibold text-[#0F172A] mb-3 flex items-center gap-2">
+                      <label className="block text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
                         <Clock className="inline w-4 h-4" style={{ color: "#4F6EF7" }} />
                         Select Time Slot
                         {slotsLoading && (
@@ -636,14 +639,14 @@ export default function BookAppointment() {
                               className="py-2.5 rounded-xl text-sm font-semibold text-center transition-all duration-200 border-2"
                               style={
                                 booked
-                                  ? { background: "#F1F5F9", color: "#94A3B8", borderColor: "#E2E8F0", cursor: "not-allowed" }
+                                  ? { background: "rgba(255,255,255,0.03)", color: "#475569", borderColor: "rgba(255,255,255,0.06)", cursor: "not-allowed", opacity: 0.5 }
                                   : selected
                                   ? { background: "linear-gradient(135deg, #4F6EF7, #6B84FF)", color: "white", borderColor: "transparent", boxShadow: "0 4px 12px rgba(79,110,247,0.3)" }
-                                  : { background: "#F7F8FF", color: "#475569", borderColor: "#E2E8F0" }
+                                  : { background: "rgba(255,255,255,0.06)", color: "#CBD5E1", borderColor: "rgba(255,255,255,0.12)" }
                               }
                             >
                               <span className="block leading-tight">{slot}</span>
-                              {booked && <span className="block text-xs font-medium mt-0.5" style={{ color: "#CBD5E1" }}>Booked</span>}
+                              {booked && <span className="block text-xs font-medium mt-0.5" style={{ color: "#475569" }}>Booked</span>}
                             </button>
                           );
                         })}
@@ -658,13 +661,13 @@ export default function BookAppointment() {
                 <div className="space-y-5">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: "#4F6EF7" }}>Step 3 of 4</p>
-                    <h2 className="text-[#0F172A] text-2xl font-bold">Your Information</h2>
+                    <h2 className="text-white text-2xl font-bold">Your Information</h2>
                   </div>
 
                   {/* First Name + Last Name */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-semibold text-[#0F172A] mb-1.5">
+                      <label className="block text-sm font-semibold text-slate-300 mb-1.5">
                         First Name <span style={{ color: "#EF4444" }}>*</span>
                       </label>
                       <input
@@ -673,13 +676,14 @@ export default function BookAppointment() {
                         value={formData.firstName}
                         onChange={handleInputChange}
                         placeholder="First name"
-                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none text-[#0F172A] placeholder:text-slate-400"
+                        className="w-full px-4 py-3 rounded-xl focus:outline-none placeholder:text-slate-500"
+                        style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "#E2E8F0" }}
                         onFocus={(e) => (e.target.style.borderColor = "#4F6EF7")}
-                        onBlur={(e) => (e.target.style.borderColor = "#E2E8F0")}
+                        onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.12)")}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-[#0F172A] mb-1.5">
+                      <label className="block text-sm font-semibold text-slate-300 mb-1.5">
                         Last Name <span style={{ color: "#EF4444" }}>*</span>
                       </label>
                       <input
@@ -688,16 +692,17 @@ export default function BookAppointment() {
                         value={formData.lastName}
                         onChange={handleInputChange}
                         placeholder="Last name"
-                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none text-[#0F172A] placeholder:text-slate-400"
+                        className="w-full px-4 py-3 rounded-xl focus:outline-none placeholder:text-slate-500"
+                        style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "#E2E8F0" }}
                         onFocus={(e) => (e.target.style.borderColor = "#4F6EF7")}
-                        onBlur={(e) => (e.target.style.borderColor = "#E2E8F0")}
+                        onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.12)")}
                       />
                     </div>
                   </div>
 
                   {/* Phone Number */}
                   <div>
-                    <label className="block text-sm font-semibold text-[#0F172A] mb-1.5">
+                    <label className="block text-sm font-semibold text-slate-300 mb-1.5">
                       Phone Number <span style={{ color: "#EF4444" }}>*</span>
                     </label>
                     <input
@@ -707,10 +712,10 @@ export default function BookAppointment() {
                       onChange={handleInputChange}
                       placeholder="09XXXXXXXXX"
                       maxLength={11}
-                      className="w-full px-4 py-3 border-2 rounded-xl focus:outline-none text-[#0F172A] placeholder:text-slate-400 transition-colors"
-                      style={{ borderColor: phoneError ? "#EF4444" : "#E2E8F0" }}
+                      className="w-full px-4 py-3 rounded-xl focus:outline-none placeholder:text-slate-500 transition-colors"
+                      style={{ background: "rgba(255,255,255,0.06)", border: `1px solid ${phoneError ? "#EF4444" : "rgba(255,255,255,0.12)"}`, color: "#E2E8F0" }}
                       onFocus={(e) => { if (!phoneError) e.target.style.borderColor = "#4F6EF7"; }}
-                      onBlur={(e) => { if (!phoneError) e.target.style.borderColor = "#E2E8F0"; }}
+                      onBlur={(e) => { if (!phoneError) e.target.style.borderColor = "rgba(255,255,255,0.12)"; }}
                     />
                     {phoneError && (
                       <p className="text-sm mt-1.5 font-medium" style={{ color: "#EF4444" }}>
@@ -727,7 +732,7 @@ export default function BookAppointment() {
                   {/* Brand + Device Type */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-semibold text-[#0F172A] mb-1.5">
+                      <label className="block text-sm font-semibold text-slate-300 mb-1.5">
                         Device Brand <span style={{ color: "#EF4444" }}>*</span>
                       </label>
                       <input
@@ -736,35 +741,37 @@ export default function BookAppointment() {
                         value={formData.brand}
                         onChange={handleInputChange}
                         placeholder="e.g., Samsung"
-                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none text-[#0F172A] placeholder:text-slate-400"
+                        className="w-full px-4 py-3 rounded-xl focus:outline-none placeholder:text-slate-500"
+                        style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "#E2E8F0" }}
                         onFocus={(e) => (e.target.style.borderColor = "#4F6EF7")}
-                        onBlur={(e) => (e.target.style.borderColor = "#E2E8F0")}
+                        onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.12)")}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-[#0F172A] mb-1.5">
+                      <label className="block text-sm font-semibold text-slate-300 mb-1.5">
                         Device Type <span style={{ color: "#EF4444" }}>*</span>
                       </label>
                       <select
                         name="deviceType"
                         value={formData.deviceType}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none text-[#0F172A] bg-white"
+                        className="w-full px-4 py-3 rounded-xl focus:outline-none"
+                        style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "#E2E8F0" }}
                         onFocus={(e) => (e.target.style.borderColor = "#4F6EF7")}
-                        onBlur={(e) => (e.target.style.borderColor = "#E2E8F0")}
+                        onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.12)")}
                       >
-                        <option value="">Select type</option>
-                        <option value="Phone">Phone</option>
-                        <option value="Laptop">Laptop</option>
-                        <option value="Desktop">Desktop</option>
+                        <option value="" style={{ background: "#0F1535" }}>Select type</option>
+                        <option value="Phone" style={{ background: "#0F1535" }}>Phone</option>
+                        <option value="Laptop" style={{ background: "#0F1535" }}>Laptop</option>
+                        <option value="Desktop" style={{ background: "#0F1535" }}>Desktop</option>
                       </select>
                     </div>
                   </div>
 
                   {/* Problem (optional) */}
                   <div>
-                    <label className="block text-sm font-semibold text-[#0F172A] mb-1.5">
-                      Problem Description <span className="text-slate-400 font-normal">(optional)</span>
+                    <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                      Problem Description <span className="text-slate-500 font-normal">(optional)</span>
                     </label>
                     <textarea
                       name="problem"
@@ -772,9 +779,10 @@ export default function BookAppointment() {
                       onChange={handleInputChange}
                       placeholder="Describe the issue with your device"
                       rows={4}
-                      className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none text-[#0F172A] placeholder:text-slate-400 resize-none"
+                      className="w-full px-4 py-3 rounded-xl focus:outline-none placeholder:text-slate-500 resize-none"
+                      style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "#E2E8F0" }}
                       onFocus={(e) => (e.target.style.borderColor = "#4F6EF7")}
-                      onBlur={(e) => (e.target.style.borderColor = "#E2E8F0")}
+                      onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.12)")}
                     />
                   </div>
                 </div>
@@ -784,11 +792,11 @@ export default function BookAppointment() {
               {step === 4 && (
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: "#4F6EF7" }}>Step 4 of 4</p>
-                  <h2 className="text-[#0F172A] text-2xl font-bold mb-6">Review & Confirm</h2>
+                  <h2 className="text-white text-2xl font-bold mb-6">Review & Confirm</h2>
 
                   <div
                     className="rounded-xl overflow-hidden mb-8"
-                    style={{ border: "1px solid #E2E8F0" }}
+                    style={{ border: "1px solid rgba(255,255,255,0.08)" }}
                   >
                     {[
                       ["Service",    formData.service],
@@ -803,12 +811,12 @@ export default function BookAppointment() {
                         key={k}
                         className="flex justify-between gap-4 px-6 py-4 text-sm"
                         style={{
-                          background: idx % 2 === 0 ? "#F7F8FF" : "white",
-                          borderBottom: idx < arr.length - 1 ? "1px solid #E2E8F0" : "none",
+                          background: idx % 2 === 0 ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.02)",
+                          borderBottom: idx < arr.length - 1 ? "1px solid rgba(255,255,255,0.08)" : "none",
                         }}
                       >
-                        <span className="text-slate-500 font-medium shrink-0">{k}</span>
-                        <span className="text-[#0F172A] font-semibold text-right">{v}</span>
+                        <span className="text-slate-400 font-medium shrink-0">{k}</span>
+                        <span className="text-white font-semibold text-right">{v}</span>
                       </div>
                     ))}
                   </div>
@@ -817,7 +825,8 @@ export default function BookAppointment() {
                     <button
                       type="button"
                       onClick={handlePrev}
-                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm border-2 border-slate-200 text-slate-600 transition-all hover:bg-slate-50"
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all text-slate-300 hover:bg-white/10"
+                      style={{ border: "1px solid rgba(255,255,255,0.12)" }}
                     >
                       <ArrowLeft className="w-4 h-4 shrink-0" /> Go Back
                     </button>
@@ -846,7 +855,8 @@ export default function BookAppointment() {
                     <button
                       type="button"
                       onClick={handlePrev}
-                      className="flex items-center gap-2 px-6 py-3.5 rounded-xl font-semibold text-sm border-2 border-slate-200 text-slate-600 transition-all hover:bg-slate-50"
+                      className="flex items-center gap-2 px-6 py-3.5 rounded-xl font-semibold text-sm transition-all text-slate-300 hover:bg-white/10"
+                      style={{ border: "1px solid rgba(255,255,255,0.12)" }}
                     >
                       <ArrowLeft className="w-4 h-4 shrink-0" /> Previous
                     </button>
