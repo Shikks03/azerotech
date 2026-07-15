@@ -17,6 +17,9 @@ import {
   Star,
 } from "lucide-react";
 import { fadeUp, fadeUpView } from "@/lib/motion";
+import SectionHeading from "@/components/SectionHeading";
+import ServiceTile from "@/components/ServiceTile";
+import FeatureTile from "@/components/FeatureTile";
 
 export default function Home() {
   return (
@@ -25,31 +28,8 @@ export default function Home() {
       {/* ─── HERO ─── */}
       <section
         className="relative overflow-hidden flex flex-col justify-center"
-        style={{
-          background: "linear-gradient(135deg, #080B1A 0%, #0F1535 60%, #080B1A 100%)",
-          minHeight: "92vh",
-        }}
+        style={{ minHeight: "92vh" }}
       >
-        {/* Grid decoration */}
-        <div
-          className="absolute inset-0 opacity-[0.04]"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)",
-            backgroundSize: "60px 60px",
-          }}
-        />
-
-        {/* Glow orbs */}
-        <div
-          className="absolute -top-32 -left-32 w-150 h-150 rounded-full opacity-10 pointer-events-none"
-          style={{ background: "radial-gradient(circle, #4F6EF7, transparent 70%)" }}
-        />
-        <div
-          className="absolute bottom-0 right-0 w-100 h-100 rounded-full pointer-events-none"
-          style={{ opacity: 0.08, background: "radial-gradient(circle, #06B6D4, transparent 70%)" }}
-        />
-
         {/* Hero Content */}
         <div className="relative flex flex-col items-center justify-center text-center px-6 sm:px-10 lg:px-16 py-32 pb-44 max-w-5xl mx-auto w-full">
           {/* Badge */}
@@ -157,39 +137,13 @@ export default function Home() {
             ))}
           </motion.div>
         </div>
-
-        {/* Bottom wave */}
-        <div className="absolute bottom-0 left-0 right-0 overflow-hidden leading-none">
-          <svg
-            viewBox="0 0 1440 64"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            preserveAspectRatio="none"
-            className="w-full h-16"
-          >
-            <path d="M0 64L1440 64L1440 32C1200 0 240 64 0 32L0 64Z" fill="#F7F8FF" />
-          </svg>
-        </div>
       </section>
 
       {/* ─── SERVICES ─── */}
-      <section className="py-14 md:py-20" style={{ background: "#F7F8FF" }}>
+      <section className="py-14 md:py-20 relative">
         <div className="flex flex-col max-w-6xl mx-auto px-6 sm:px-10 lg:px-12">
           {/* Section Header */}
-          <motion.div {...fadeUpView()} className="flex flex-col items-center text-center mb-5">
-            <span
-              className="inline-block text-sm mb-3 uppercase tracking-widest"
-              style={{ color: "#4F6EF7", fontWeight: 600 }}
-            >
-              What We Offer
-            </span>
-            <h2 className="text-[#0F172A] mb-3" style={{ fontWeight: 700 }}>
-              Our Main Services
-            </h2>
-            <p className="text-slate-500 max-w-md">
-              From cracked screens to slow laptops — we handle it all at an affordable price.
-            </p>
-          </motion.div>
+          <SectionHeading eyebrow="What We Offer" title="Our Main Services" subtitle="From cracked screens to slow laptops — we handle it all at an affordable price." className="mb-5" />
 
           {/* Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-3">
@@ -200,7 +154,6 @@ export default function Home() {
                 desc: "LCD replacement, charging fix, button repair, reprogram, reformat, and more.",
                 href: "/services#phone",
                 color: "#4F6EF7",
-                bg: "#EEF1FF",
                 label: "Learn more",
                 delay: 0,
               },
@@ -210,7 +163,6 @@ export default function Home() {
                 desc: "Full OS reformat and reinstallation for laptops and desktop computers.",
                 href: "/services#laptop",
                 color: "#06B6D4",
-                bg: "#ECFEFF",
                 label: "Learn more",
                 delay: 0.08,
               },
@@ -220,7 +172,6 @@ export default function Home() {
                 desc: "Document, photo, and ID printing — quick turnaround at affordable rates.",
                 href: "/services#printing",
                 color: "#F59E0B",
-                bg: "#FFFBEB",
                 label: "Learn more",
                 delay: 0.16,
               },
@@ -230,41 +181,12 @@ export default function Home() {
                 desc: "Quality chargers, cables, earphones, keyboards, mice, and more in-store.",
                 href: "/accessories",
                 color: "#8B5CF6",
-                bg: "#F5F3FF",
                 label: "Check Accessories",
                 delay: 0.24,
               },
             ].map((item) => (
-              <motion.div
-                key={item.title}
-                {...fadeUpView(item.delay)}
-                className="flex"
-              >
-                <Link href={item.href} className="flex flex-col h-full w-full">
-                  <div
-                    className="flex flex-col flex-1 bg-white rounded-2xl p-8 border border-slate-100 hover:border-transparent hover:shadow-xl transition-all duration-300 group cursor-pointer"
-                    style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}
-                  >
-                    <div
-                      className="w-14 h-14 rounded-xl flex items-center justify-center mb-8 transition-transform duration-300 group-hover:scale-110 shrink-0"
-                      style={{ background: item.bg }}
-                    >
-                      <item.Icon className="w-7 h-7" style={{ color: item.color }} />
-                    </div>
-                    <h3 className="text-[#0F172A] mb-4" style={{ fontSize: "1.1rem", fontWeight: 700 }}>
-                      {item.title}
-                    </h3>
-                    <p className="text-slate-500 text-sm leading-relaxed flex-1 mb-8">
-                      {item.desc}
-                    </p>
-                    <span
-                      className="inline-flex items-center gap-2 text-sm transition-all group-hover:gap-3"
-                      style={{ color: item.color, fontWeight: 600 }}
-                    >
-                      {item.label} <ArrowRight className="w-4 h-4 shrink-0" />
-                    </span>
-                  </div>
-                </Link>
+              <motion.div key={item.title} {...fadeUpView(item.delay)} className="flex">
+                <ServiceTile Icon={item.Icon} title={item.title} desc={item.desc} href={item.href} color={item.color} label={item.label} />
               </motion.div>
             ))}
           </div>
@@ -272,20 +194,10 @@ export default function Home() {
       </section>
 
       {/* ─── WHY AZEROTECH ─── */}
-      <section className="py-16 md:py-24" style={{ background: "#080B1A" }}>
+      <section className="py-16 md:py-24 relative">
         <div className="flex flex-col max-w-6xl mx-auto px-6 sm:px-10 lg:px-12">
           {/* Section Header */}
-          <motion.div {...fadeUpView()} className="flex flex-col items-center text-center mb-20">
-            <span
-              className="inline-block text-sm mb-5 uppercase tracking-widest"
-              style={{ color: "#8B9EFF", fontWeight: 600 }}
-            >
-              Why AzeroTech
-            </span>
-            <h2 className="text-white" style={{ fontWeight: 700 }}>
-              Repairs You Can Trust
-            </h2>
-          </motion.div>
+          <SectionHeading eyebrow="Why AzeroTech" title="Repairs You Can Trust" className="mb-20" />
 
           {/* Feature Cards */}
           <div className="flex flex-col sm:flex-row flex-wrap items-stretch gap-8">
@@ -298,22 +210,9 @@ export default function Home() {
               <motion.div
                 key={item.title}
                 {...fadeUpView(item.delay)}
-                className="flex flex-col flex-1 basis-full sm:basis-[calc(50%-16px)] lg:basis-[calc(25%-24px)] rounded-2xl p-10 transition-all duration-300 group"
-                style={{
-                  background: "rgba(255,255,255,0.05)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                }}
+                className="flex flex-col flex-1 basis-full sm:basis-[calc(50%-16px)] lg:basis-[calc(25%-24px)]"
               >
-                <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center mb-8 transition-colors duration-300 group-hover:bg-[#4F6EF7]/25 shrink-0"
-                  style={{ background: "rgba(79,110,247,0.15)" }}
-                >
-                  <item.Icon className="w-6 h-6" style={{ color: "#8B9EFF" }} />
-                </div>
-                <h4 className="text-white mb-4" style={{ fontWeight: 600, fontSize: "1rem" }}>
-                  {item.title}
-                </h4>
-                <p className="text-slate-500 text-sm leading-relaxed">{item.desc}</p>
+                <FeatureTile Icon={item.Icon} title={item.title} desc={item.desc} />
               </motion.div>
             ))}
           </div>
@@ -321,20 +220,10 @@ export default function Home() {
       </section>
 
       {/* ─── LOCATIONS ─── */}
-      <section className="py-16 md:py-24" style={{ background: "#F7F8FF" }}>
+      <section className="py-16 md:py-24 relative">
         <div className="flex flex-col max-w-6xl mx-auto px-6 sm:px-10 lg:px-12">
           {/* Section Header */}
-          <motion.div {...fadeUpView()} className="flex flex-col items-center text-center mb-10">
-            <span
-              className="inline-block text-sm mb-5 uppercase tracking-widest"
-              style={{ color: "#4F6EF7", fontWeight: 600 }}
-            >
-              Find Us
-            </span>
-            <h2 className="text-[#0F172A]" style={{ fontWeight: 700 }}>
-              Visit Our Shop
-            </h2>
-          </motion.div>
+          <SectionHeading eyebrow="Find Us" title="Visit Our Shop" className="mb-10" />
 
           {/* Location + Map */}
           <div className="flex flex-col lg:flex-row items-stretch gap-10">
@@ -342,26 +231,25 @@ export default function Home() {
             <div className="flex flex-col gap-6 w-full lg:w-2/5">
               <motion.div
                 {...fadeUpView(0)}
-                className="flex flex-col bg-white rounded-2xl p-8 border border-slate-100"
-                style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.05)" }}
+                className="glass flex flex-col rounded-2xl p-8"
               >
                 <div className="flex items-start gap-5">
-                  <div className="bg-[#EEF1FF] p-3 rounded-xl shrink-0">
+                  <div className="p-3 rounded-xl shrink-0" style={{ background: "rgba(79,110,247,0.15)" }}>
                     <MapPin className="w-6 h-6 text-[#4F6EF7]" />
                   </div>
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-[#0F172A]" style={{ fontSize: "1.1rem", fontWeight: 700 }}>
+                      <h3 className="text-white" style={{ fontSize: "1.1rem", fontWeight: 700 }}>
                         Main Branch
                       </h3>
                       <span
                         className="text-xs px-2.5 py-0.5 rounded-full shrink-0"
-                        style={{ background: "#DCFCE7", color: "#15803D", fontWeight: 600 }}
+                        style={{ background: "rgba(34,197,94,0.15)", color: "#4ADE80", fontWeight: 600 }}
                       >
                         Open
                       </span>
                     </div>
-                    <p className="text-slate-500 text-sm">B39 L2 PH2 Greengate Homes Malagasang 2-B, Imus, Cavite, 4105</p>
+                    <p className="text-slate-400 text-sm">B39 L2 PH2 Greengate Homes Malagasang 2-B, Imus, Cavite, 4105</p>
                     <a
                       href="https://www.google.com/maps/place/Azerotech+Gadget+fix+%26+Printing+Services/@14.3712506,120.9221804,928m/data=!3m1!1e3!4m6!3m5!1s0x3397d3e8468e7917:0x6e2d9fc810571320!8m2!3d14.3712454!4d120.9213543!16s%2Fg%2F11j53q_t9x?entry=ttu&g_ep=EgoyMDI2MDMwNC4xIKXMDSoASAFQAw%3D%3D"
                       target="_blank"
@@ -377,21 +265,20 @@ export default function Home() {
 
               <motion.div
                 {...fadeUpView(0.08)}
-                className="flex flex-col bg-white rounded-2xl p-8 border border-slate-100"
-                style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.05)" }}
+                className="glass flex flex-col rounded-2xl p-8"
               >
                 <div className="flex items-start gap-5">
-                  <div className="bg-slate-100 p-3 rounded-xl shrink-0">
+                  <div className="p-3 rounded-xl shrink-0" style={{ background: "rgba(255,255,255,0.08)" }}>
                     <MapPin className="w-6 h-6 text-slate-400" />
                   </div>
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-[#0F172A]" style={{ fontSize: "1.1rem", fontWeight: 700 }}>
+                      <h3 className="text-white" style={{ fontSize: "1.1rem", fontWeight: 700 }}>
                         Branch 2
                       </h3>
                       <span
                         className="text-xs px-2.5 py-0.5 rounded-full shrink-0"
-                        style={{ background: "#F1F5F9", color: "#64748B", fontWeight: 600 }}
+                        style={{ background: "rgba(255,255,255,0.08)", color: "#94A3B8", fontWeight: 600 }}
                       >
                         Coming Soon
                       </span>
@@ -421,8 +308,8 @@ export default function Home() {
             {/* Map */}
             <motion.div
               {...fadeUpView(0.1)}
-              className="flex flex-col flex-1 bg-white rounded-2xl overflow-hidden border border-slate-100"
-              style={{ minHeight: "480px", boxShadow: "0 2px 12px rgba(0,0,0,0.05)" }}
+              className="glass flex flex-col flex-1 rounded-2xl overflow-hidden"
+              style={{ minHeight: "480px" }}
             >
               <iframe
                 title="AzeroTech Location – Imus, Cavite"
@@ -440,10 +327,7 @@ export default function Home() {
       </section>
 
       {/* ─── CTA ─── */}
-      <section
-        className="py-36 md:py-44"
-        style={{ background: "linear-gradient(135deg, #080B1A 0%, #0F1535 100%)" }}
-      >
+      <section className="py-36 md:py-44 relative">
         <div className="flex flex-col items-center text-center max-w-2xl mx-auto px-6 gap-8">
           <motion.h2 {...fadeUpView()} className="text-white" style={{ fontWeight: 700 }}>
             Ready to Fix Your Device?
