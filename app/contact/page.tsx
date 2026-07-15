@@ -9,6 +9,7 @@ import {
   MapPin,
 } from "lucide-react";
 import { fadeUp, fadeUpView } from "@/lib/motion";
+import ContactForm from "@/components/ContactForm";
 
 function InstagramIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return (
@@ -221,6 +222,8 @@ export default function Contact() {
           </div>
         </div>
       </section>
+
+      <ContactForm />
 
       {/* ─── STORE HOURS ─── */}
       <section className="py-16 md:py-24" style={{ background: "#080B1A" }}>
