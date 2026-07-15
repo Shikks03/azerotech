@@ -21,6 +21,7 @@ import SectionHeading from "@/components/SectionHeading";
 import ServiceTile from "@/components/ServiceTile";
 import FeatureTile from "@/components/FeatureTile";
 import RepairTrackerCTA from "@/components/RepairTrackerCTA";
+import ReviewCard from "@/components/ReviewCard";
 
 export default function Home() {
   return (
@@ -325,6 +326,24 @@ export default function Home() {
                 referrerPolicy="no-referrer-when-downgrade"
               />
             </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── CUSTOMER REVIEWS ─── */}
+      <section className="py-16 md:py-24 relative">
+        <div className="flex flex-col max-w-6xl mx-auto px-6 sm:px-10 lg:px-12">
+          <SectionHeading eyebrow="Customer Reviews" title="What Our Customers Say" className="mb-12" />
+          <div className="flex flex-col md:flex-row items-stretch gap-6">
+            {[
+              { quote: "Best service ever! Fixed my cracked screen in under an hour and the price was fair.", name: "Sarah K.", meta: "Phone screen repair" },
+              { quote: "Reformatted my old laptop and it runs like new. Highly recommend AzeroTech.", name: "Mark D.", meta: "Laptop reformat" },
+              { quote: "Great selection of accessories and super knowledgeable, friendly staff.", name: "Jenny T.", meta: "Accessories" },
+            ].map((r, i) => (
+              <motion.div key={r.name} {...fadeUpView(i * 0.08)} className="flex">
+                <ReviewCard quote={r.quote} name={r.name} meta={r.meta} />
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
