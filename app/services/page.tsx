@@ -11,21 +11,7 @@ import {
   CheckCircle2,
   Printer,
 } from "lucide-react";
-
-const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
-
-const fadeUp = (delay = 0) => ({
-  initial: { opacity: 0, y: 28 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.55, delay, ease },
-});
-
-const fadeUpView = (delay = 0) => ({
-  initial: { opacity: 0, y: 28 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true },
-  transition: { duration: 0.55, delay, ease },
-});
+import { fadeUp, fadeUpView } from "@/lib/motion";
 
 type ServiceCategory = {
   id: string;
@@ -245,45 +231,31 @@ export default function Services() {
             Professional repair and maintenance services for all your devices — fast, reliable, and affordable.
           </motion.p>
         </div>
-
-        {/* Bottom wave */}
-        <div className="absolute bottom-0 left-0 right-0 overflow-hidden leading-none">
-          <svg
-            viewBox="0 0 1440 64"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            preserveAspectRatio="none"
-            className="w-full h-16"
-          >
-            <path d="M0 64L1440 64L1440 32C1200 0 240 64 0 32L0 64Z" fill="#F7F8FF" />
-          </svg>
-        </div>
       </section>
 
       {/* ─── SERVICE CARDS ─── */}
-      <section className="py-16 md:py-24" style={{ background: "#F7F8FF" }}>
+      <section className="relative py-16 md:py-24">
         <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {serviceCategories.map((cat, catIdx) => (
               <motion.div
                 key={cat.id}
                 {...fadeUpView(catIdx * 0.1)}
-                className="flex flex-col rounded-2xl overflow-hidden border border-slate-100"
-                style={{ boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}
+                className="glass glass-hover flex flex-col rounded-2xl overflow-hidden"
               >
                 {/* Card Header */}
                 <div
                   className="flex items-center gap-5 px-8 py-7"
-                  style={{ background: cat.accentBg }}
+                  style={{ background: "rgba(79,110,247,0.15)" }}
                 >
                   <div
                     className="w-16 h-16 rounded-xl flex items-center justify-center shrink-0"
-                    style={{ background: "white" }}
+                    style={{ background: "rgba(255,255,255,0.08)" }}
                   >
                     <cat.Icon className="w-7 h-7" style={{ color: cat.accentColor }} />
                   </div>
                   <div>
-                    <p className="font-bold text-[#0F172A] text-xl leading-tight">{cat.label}</p>
+                    <p className="font-bold text-white text-xl leading-tight">{cat.label}</p>
                     <p className="text-base font-medium mt-0.5" style={{ color: cat.accentColor }}>
                       {cat.count} {cat.count === 1 ? "service" : "services"}
                     </p>
@@ -291,22 +263,25 @@ export default function Services() {
                 </div>
 
                 {/* Service List */}
-                <div className="flex flex-col flex-1 bg-white px-8 py-6">
+                <div className="flex flex-col flex-1 px-8 py-6">
                   <div className={cat.twoColumn ? "grid grid-cols-2 gap-x-4 gap-y-3" : "flex flex-col gap-4"}>
                     {cat.services.map((svc) => (
-                      <div key={svc} className="flex items-center gap-2.5">
+                      <div
+                        key={svc}
+                        className="flex items-center gap-2.5"
+                      >
                         <CheckCircle2
                           className="w-4 h-4 shrink-0"
                           style={{ color: cat.accentColor }}
                         />
-                        <span className={`text-[#0F172A] ${cat.twoColumn ? "text-sm" : "text-base"}`}>{svc}</span>
+                        <span className={`text-white ${cat.twoColumn ? "text-sm" : "text-base"}`}>{svc}</span>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 {/* CTA Button */}
-                <div className="bg-white px-8 pb-8">
+                <div className="px-8 pb-8">
                   <Link
                     href={cat.href}
                     className="flex items-center justify-center gap-2 w-full text-white py-4 rounded-xl font-semibold text-base transition-all hover:opacity-90"

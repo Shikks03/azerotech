@@ -19,6 +19,15 @@
   --text-light: var(--gray-medium);
   --border: var(--gray-medium);
 
+  /* ── Dark design system (redesign) ── */
+  --surface-glass: rgba(255, 255, 255, 0.05);
+  --surface-glass-hover: rgba(255, 255, 255, 0.08);
+  --border-glass: rgba(255, 255, 255, 0.10);
+  --border-glass-accent: rgba(79, 110, 247, 0.40);
+  --text-on-dark: #E2E8F0;
+  --text-on-dark-muted: #94A3B8;
+  --glow-indigo: rgba(79, 110, 247, 0.35);
+
   --font-heading: "Space Grotesk", system-ui, sans-serif;
   --font-body: "Space Grotesk", system-ui, sans-serif;
 }
@@ -43,8 +52,8 @@
   }
 
   body {
-    background-color: #ffffff;
-    color: var(--text-primary);
+    background-color: var(--navy-dark);
+    color: var(--text-on-dark);
     font-family: var(--font-body);
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
@@ -140,6 +149,33 @@
     transform: translateY(-2px);
     opacity: 0.8;
   }
+
+  .glass {
+    background: var(--surface-glass);
+    border: 1px solid var(--border-glass);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 1rem;
+  }
+
+  .glass-hover {
+    transition: background 0.3s ease, border-color 0.3s ease;
+  }
+  .glass-hover:hover {
+    background: var(--surface-glass-hover);
+    border-color: var(--border-glass-accent);
+  }
+
+  /* Opaque (non-blurred) variant of .glass — use when a backdrop-blur is unwanted */
+  .tile {
+    background: var(--surface-glass);
+    border: 1px solid var(--border-glass);
+    border-radius: 1rem;
+  }
+
+  .text-glow {
+    text-shadow: 0 0 10px var(--glow-indigo);
+  }
 }
 
 /* ── Keyframes & animation helpers (no cascade conflict) ── */
@@ -173,3 +209,19 @@
 .animate-slide-left { animation: slideInLeft  0.6s ease-out; }
 .animate-slide-right{ animation: slideInRight 0.6s ease-out; }
 .animate-pulse-slow { animation: pulse 3s ease-in-out infinite; }
+
+@keyframes floatY {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-14px); }
+}
+.animate-float { animation: floatY 8s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-float,
+  .animate-fade-in,
+  .animate-slide-up,
+  .animate-slide-left,
+  .animate-slide-right,
+  .animate-pulse-slow { animation: none; }
+  * { scroll-behavior: auto !important; }
+}

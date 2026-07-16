@@ -8,6 +8,8 @@ import {
   MessageCircle,
   MapPin,
 } from "lucide-react";
+import { fadeUp, fadeUpView } from "@/lib/motion";
+import ContactForm from "@/components/ContactForm";
 
 function InstagramIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return (
@@ -28,21 +30,6 @@ function InstagramIcon({ className, style }: { className?: string; style?: React
     </svg>
   );
 }
-
-const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
-
-const fadeUp = (delay = 0) => ({
-  initial: { opacity: 0, y: 28 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.55, delay, ease },
-});
-
-const fadeUpView = (delay = 0) => ({
-  initial: { opacity: 0, y: 28 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true },
-  transition: { duration: 0.55, delay, ease },
-});
 
 const today = new Date().toLocaleDateString("en-US", { weekday: "long" });
 
@@ -175,22 +162,10 @@ export default function Contact() {
           </motion.p>
         </div>
 
-        {/* Bottom wave */}
-        <div className="absolute bottom-0 left-0 right-0 overflow-hidden leading-none">
-          <svg
-            viewBox="0 0 1440 64"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            preserveAspectRatio="none"
-            className="w-full h-16"
-          >
-            <path d="M0 64L1440 64L1440 32C1200 0 240 64 0 32L0 64Z" fill="#F7F8FF" />
-          </svg>
-        </div>
       </section>
 
       {/* ─── CONTACT + MAP ─── */}
-      <section className="py-16 md:py-24" style={{ background: "#F7F8FF" }}>
+      <section className="relative py-16 md:py-24">
         <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16">
           <div className="flex flex-col lg:flex-row items-stretch gap-10">
 
@@ -203,18 +178,17 @@ export default function Contact() {
                   href={method.href}
                   target={method.href.startsWith("http") ? "_blank" : undefined}
                   rel={method.href.startsWith("http") ? "noopener noreferrer" : undefined}
-                  className="flex items-center gap-5 bg-white rounded-2xl px-6 py-5 border border-slate-100 hover:border-transparent hover:shadow-lg transition-all duration-300 group"
-                  style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}
+                  className="flex items-center gap-5 glass glass-hover rounded-2xl px-6 py-5 transition-all duration-300 group"
                 >
                   <div
                     className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110"
-                    style={{ background: method.accentBg }}
+                    style={{ background: "rgba(79,110,247,0.15)" }}
                   >
                     <method.Icon className="w-5 h-5" style={{ color: method.accentColor }} />
                   </div>
                   <div className="flex flex-col flex-1 min-w-0">
-                    <p className="text-[#0F172A] font-semibold text-sm">{method.label}</p>
-                    <p className="text-[#0F172A] font-bold text-base truncate">{method.detail}</p>
+                    <p className="text-white font-semibold text-sm">{method.label}</p>
+                    <p className="text-white font-bold text-base truncate">{method.detail}</p>
                     <p className="text-slate-400 text-xs">{method.sub}</p>
                   </div>
                   <span
@@ -230,8 +204,8 @@ export default function Contact() {
             {/* Map */}
             <motion.div
               {...fadeUpView(0.1)}
-              className="flex flex-col flex-1 bg-white rounded-2xl overflow-hidden border border-slate-100"
-              style={{ minHeight: "480px", boxShadow: "0 2px 12px rgba(0,0,0,0.05)" }}
+              className="flex flex-col flex-1 glass rounded-2xl overflow-hidden"
+              style={{ minHeight: "480px" }}
             >
               <iframe
                 title="AzeroTech Location – Imus, Cavite"
@@ -248,6 +222,8 @@ export default function Contact() {
           </div>
         </div>
       </section>
+
+      <ContactForm />
 
       {/* ─── STORE HOURS ─── */}
       <section className="py-16 md:py-24" style={{ background: "#080B1A" }}>
