@@ -170,3 +170,35 @@ Manual matrix:
 - **PNG aspect coverage** — a single landscape PNG under `object-fit: cover` may crop edge shapes
   on extreme portrait viewports. Accepted for a static fallback; revisit with a portrait variant
   only if it looks wrong in QA.
+
+## As-Built Amendments (2026-07-17)
+
+Reality diverged from this spec during implementation. What actually shipped:
+
+1. **The lab scene evolved mid-build.** The `bg-lab` scene grew from the snapshot this
+   spec was written against (cube/tetrahedron/**torus**, static cubes, no rim lights) into a
+   richer, modular, tested codebase: **rings** (custom rounded-rectangle surface-of-revolution
+   geometry with outline groups) instead of tori, **slowly spinning cubes**, uniform blue tint,
+   and **blue/purple rim lights + fill**. The shipped background matches this current lab.
+
+2. **Shared source of truth, not a hand-port.** Instead of transcribing the scene into
+   `lib/background/scene.ts`, the scene core was promoted into plain-ESM modules under
+   **`lib/background/core/`** (`sceneCore.mjs` = `createScene()` factory, `shapes.mjs`,
+   `ringSpecs.mjs`) imported by BOTH the lab and the app. Bare `three` / `three/addons/*`
+   specifiers resolve in both (import map + bundler). The lab (`bg-lab/`) is now a thin
+   consumer. Edits to the scene happen in the core; the app stays in sync automatically, so
+   there is no "re-port at freeze" step.
+
+3. **Crisp-first tiers.** The `internalResScale` downscale (0.85 / 0.7) read as blurry, so all
+   tiers now render at **full internal resolution**. Efficiency comes from quality-neutral
+   levers instead: a **30fps cap** (invisible for slow idle drift), **`powerPreference:
+   'high-performance'`**, **MSAA auto-disabled when DPR ≥ 2**, and **ring segments 168→120**.
+   The tier ladder differentiates on DPR cap (2 / 1.5 / 1) and, at the bottom rung only,
+   **transmission off**. `internalResScale` remains as an emergency-only knob (default 1.0).
+
+4. **Testing.** No app test runner was added (unchanged). The lab retains its own Node test
+   (`bg-lab/shapes.test.mjs`), updated to assert against the shared core.
+
+5. **Follow-up noted:** Three r0.167+ would add `transmissionResolutionScale` (render the
+   frosted transmission pass at ~0.5×, near-invisible saving) — deferred, needs a version bump
+   + `RoomEnvironment` compatibility check.

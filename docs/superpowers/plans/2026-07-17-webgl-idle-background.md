@@ -870,3 +870,27 @@ git commit -m "chore(bg): verification pass complete" --allow-empty
 - **Spec coverage:** layer model (T7), single persistent mount (T7/T8), 4 tiers (T3/T6), detection (T4), watchdog (T5/T7), transmission-off low tier (T6 `applyTransmission`), `/admin` hide (T7), dispose/context-loss (T6/T7), Three r0.165 pin (T1), PNG generation (T9), verification matrix (T10). All spec sections mapped.
 - **Type consistency:** `Tier`/`ActiveTier`/`TierPreset`/`ShapeConfig` defined in T2 and used unchanged in T3–T7; `SceneHandle`/`SceneCallbacks` defined in T6 and consumed in T7; `createWatchdog(onExceed, opts)` signature matches its T7 call site.
 - **Known simplification:** `setQuality()` does not change MSAA (renderer is fixed at creation). Documented in T6; acceptable because DPR/resolution/transmission dominate cost and the watchdog only downgrades.
+
+---
+
+## As-Built Deviations (2026-07-17)
+
+This plan was executed through Task 5 as written. Tasks 6–8 were then re-architected mid-flight
+(the lab had evolved into a modular, tested, ring-based scene, and we chose a shared source of
+truth over a hand-port). See the spec's "As-Built Amendments" for the full rationale. Net changes
+vs. the task list above:
+
+- **Task 6 replaced.** Instead of `lib/background/scene.ts` (deleted), the scene lives in shared
+  ESM: `lib/background/core/sceneCore.mjs` (`createScene()` factory), `shapes.mjs`, `ringSpecs.mjs`.
+- **Task 6b added.** `bg-lab/shapes.js` refactored to a thin core consumer; `ring-specs.mjs`
+  re-exports the core; `shapes.test.mjs` updated to read the core; lab now served from repo root.
+- **Task 7** (`SceneBackground.tsx`) consumes `createScene` from the core rather than a bespoke
+  `scene.ts`; otherwise as designed.
+- **Tasks 2/3** partially superseded: `sceneConfig.ts` slimmed to `TIER_PRESETS` (SHAPES moved to
+  the core); `TIER_PRESETS` later revised to full-resolution + 30fps + GPU hint + AA-on-hi-DPR.
+- **Task 9 (PNG)** capture handler lives in the lab bootstrap via the core's `captureFrame()`.
+- **Verification:** `tsc`, `lint`, `build`, and the lab Node test pass. The browser matrix
+  (Task 10) and PNG generation (Task 9) remain manual user steps.
+
+Commits: `382c0fc` (three) · `d04a743`/`41793b6`/`60e2c08`/`e1d59c3` (types/config/capability/
+watchdog) · `0918d25` (core + component + wiring) · `4e8bca9` (crisp-first efficiency pass).
