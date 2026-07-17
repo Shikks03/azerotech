@@ -162,7 +162,7 @@ export default function Services() {
       <section
         className="relative overflow-hidden flex flex-col justify-center"
         style={{
-          background: "linear-gradient(135deg, #080B1A 0%, #0F1535 60%, #080B1A 100%)",
+          background: "transparent",
           minHeight: "60vh",
         }}
       >
@@ -176,15 +176,6 @@ export default function Services() {
           }}
         />
 
-        {/* Glow orbs */}
-        <div
-          className="absolute -top-32 -left-32 w-150 h-150 rounded-full opacity-10 pointer-events-none"
-          style={{ background: "radial-gradient(circle, #4F6EF7, transparent 70%)" }}
-        />
-        <div
-          className="absolute bottom-0 right-0 w-100 h-100 rounded-full pointer-events-none"
-          style={{ opacity: 0.08, background: "radial-gradient(circle, #06B6D4, transparent 70%)" }}
-        />
 
         <div className="relative flex flex-col items-center justify-center text-center px-6 sm:px-10 lg:px-16 py-28 pb-40 max-w-4xl mx-auto w-full">
           {/* Badge */}
@@ -302,7 +293,7 @@ export default function Services() {
       {/* ─── CTA ─── */}
       <section
         className="py-36 md:py-44"
-        style={{ background: "linear-gradient(135deg, #080B1A 0%, #0F1535 100%)" }}
+        style={{ background: "transparent" }}
       >
         <div className="flex flex-col items-center text-center max-w-2xl mx-auto px-6 gap-8">
           <motion.h2 {...fadeUpView()} className="text-white" style={{ fontWeight: 700 }}>

@@ -118,7 +118,7 @@ function RepairStatusInner() {
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-start px-6 py-24"
-      style={{ background: "linear-gradient(135deg, #080B1A 0%, #0F1535 100%)" }}
+      style={{ background: "transparent" }}
     >
       <motion.div
         initial={{ opacity: 0, y: 28 }}

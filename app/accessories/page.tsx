@@ -186,7 +186,7 @@ export default function Accessories() {
       <section
         className="relative overflow-hidden flex flex-col justify-center"
         style={{
-          background: "linear-gradient(135deg, #080B1A 0%, #0F1535 60%, #080B1A 100%)",
+          background: "transparent",
           minHeight: "50vh",
         }}
       >
@@ -197,14 +197,6 @@ export default function Accessories() {
               "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)",
             backgroundSize: "60px 60px",
           }}
-        />
-        <div
-          className="absolute -top-32 -left-32 w-150 h-150 rounded-full opacity-10 pointer-events-none"
-          style={{ background: "radial-gradient(circle, #8B5CF6, transparent 70%)" }}
-        />
-        <div
-          className="absolute bottom-0 right-0 w-100 h-100 rounded-full pointer-events-none"
-          style={{ opacity: 0.08, background: "radial-gradient(circle, #A78BFA, transparent 70%)" }}
         />
 
         <div className="relative flex flex-col items-center justify-center text-center px-6 sm:px-10 lg:px-16 py-24 pb-36 max-w-4xl mx-auto w-full">
@@ -254,14 +246,9 @@ export default function Accessories() {
       {/* ─── FILTER BAR ─── */}
       <div
         className="sticky top-16 z-40"
-        style={{
-          background: "rgba(8,11,26,0.85)",
-          backdropFilter: "blur(12px)",
-          borderBottom: "1px solid rgba(255,255,255,0.08)",
-        }}
       >
         <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 py-4">
-          <div className="flex overflow-x-auto gap-2 pb-0.5 scrollbar-hide">
+          <div className="flex justify-center overflow-x-auto gap-2 pb-0.5 scrollbar-hide">
             {categories.map((cat) => {
               const active = selectedCategory === cat;
               return (
@@ -272,14 +259,19 @@ export default function Accessories() {
                   style={
                     active
                       ? {
-                          background: "linear-gradient(135deg, #8B5CF6, #A78BFA)",
+                          background: "rgba(139,92,246,0.25)",
                           color: "white",
-                          boxShadow: "0 4px 12px rgba(139,92,246,0.3)",
+                          border: "1px solid rgba(139,92,246,0.5)",
+                          backdropFilter: "blur(12px)",
+                          WebkitBackdropFilter: "blur(12px)",
+                          boxShadow: "0 4px 12px rgba(139,92,246,0.25)",
                         }
                       : {
-                          background: "rgba(255,255,255,0.06)",
+                          background: "rgba(255,255,255,0.05)",
                           color: "#94A3B8",
                           border: "1px solid rgba(255,255,255,0.12)",
+                          backdropFilter: "blur(12px)",
+                          WebkitBackdropFilter: "blur(12px)",
                         }
                   }
                 >
@@ -391,7 +383,7 @@ export default function Accessories() {
 
       <section
         className="py-36 md:py-44"
-        style={{ background: "linear-gradient(135deg, #080B1A 0%, #0F1535 100%)" }}
+        style={{ background: "transparent" }}
       >
         <div className="flex flex-col items-center text-center max-w-2xl mx-auto px-6 gap-8">
           <motion.h2 {...fadeUpView()} className="text-white" style={{ fontWeight: 700 }}>

@@ -267,7 +267,7 @@ export default function BookAppointment() {
     return (
       <div
         className="min-h-screen flex items-center justify-center px-6 py-24"
-        style={{ background: "linear-gradient(135deg, #080B1A 0%, #0F1535 100%)" }}
+        style={{ background: "transparent" }}
       >
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
@@ -364,7 +364,7 @@ export default function BookAppointment() {
       <section
         className="relative overflow-hidden flex flex-col justify-center"
         style={{
-          background: "linear-gradient(135deg, #080B1A 0%, #0F1535 60%, #080B1A 100%)",
+          background: "transparent",
           minHeight: "50vh",
         }}
       >
@@ -375,14 +375,6 @@ export default function BookAppointment() {
               "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)",
             backgroundSize: "60px 60px",
           }}
-        />
-        <div
-          className="absolute -top-32 -left-32 w-150 h-150 rounded-full opacity-10 pointer-events-none"
-          style={{ background: "radial-gradient(circle, #4F6EF7, transparent 70%)" }}
-        />
-        <div
-          className="absolute bottom-0 right-0 w-100 h-100 rounded-full pointer-events-none"
-          style={{ opacity: 0.08, background: "radial-gradient(circle, #06B6D4, transparent 70%)" }}
         />
 
         <div className="relative flex flex-col items-center justify-center text-center px-6 sm:px-10 lg:px-16 py-24 max-w-4xl mx-auto w-full">
@@ -882,7 +874,7 @@ export default function BookAppointment() {
       </section>
 
       {/* ─── NEED HELP ─── */}
-      <section className="py-16 md:py-24" style={{ background: "#080B1A" }}>
+      <section className="py-16 md:py-24" style={{ background: "transparent" }}>
         <div className="max-w-2xl mx-auto px-6 sm:px-10">
           <motion.div {...fadeUpView()} className="flex flex-col items-center text-center mb-10">
             <span className="inline-block text-sm mb-4 uppercase tracking-widest font-semibold" style={{ color: "#8B9EFF" }}>
