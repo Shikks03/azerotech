@@ -4,7 +4,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Analytics } from "@vercel/analytics/next";
-import PageBackground from "@/components/PageBackground";
+import SceneBackground from "@/components/SceneBackground";
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
@@ -33,7 +33,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={spaceGrotesk.variable}>
-        <PageBackground />
+        <SceneBackground />
         <Header />
         <main>{children}</main>
         <Footer />
