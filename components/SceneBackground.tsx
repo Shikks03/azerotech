@@ -107,7 +107,7 @@ export default function SceneBackground() {
       />
       {/* Layer 1 — static PNG fallback, always present. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/background.png" alt="" className="absolute inset-0 h-full w-full object-cover" />
+      <img src="/background.webp" alt="" className="absolute inset-0 h-full w-full object-cover" />
       {/* Layer 2 — live WebGL scene, fades in over the PNG once the first frame renders. */}
       <canvas
         ref={canvasRef}
