@@ -43,3 +43,6 @@ next-env.d.ts
 
 # Local design preview downloads
 .stitch-preview/
+
+# Superpowers subagent-driven-development working state (machinery, not source)
+.superpowers/
