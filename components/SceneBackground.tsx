@@ -64,22 +64,33 @@ export default function SceneBackground() {
       watchdog.reset();
     });
 
-    // Dynamic import keeps three.js + the scene core out of the initial bundle.
-    import("@/lib/background/core/sceneCore.mjs").then(({ createScene }) => {
-      if (disposed) return;
-      const preset = TIER_PRESETS[startTier as ActiveTier];
-      watchdog.setBudget(budgetFor(startTier as ActiveTier));
-      handle = createScene(canvas, {
-        dprCap: preset.dprCap,
-        internalResScale: preset.internalResScale,
-        transmission: preset.transmission,
-        fpsCap: preset.fpsCap,
-        antialias: preset.antialias,
-        onFirstFrame: () => setCanvasVisible(true),
-        onFrame: (ms: number) => watchdog.sample(ms),
+    // Spin up WebGL during idle time so the heavy three.js chunk + scene build never
+    // compete with content paint / hydration — the WebP poster is already on screen.
+    let idleId: number | undefined;
+    let timeoutId: number | undefined;
+    const startWebGL = () => {
+      // Dynamic import keeps three.js + the scene core out of the initial bundle.
+      import("@/lib/background/core/sceneCore.mjs").then(({ createScene }) => {
+        if (disposed) return;
+        const preset = TIER_PRESETS[startTier as ActiveTier];
+        watchdog.setBudget(budgetFor(startTier as ActiveTier));
+        handle = createScene(canvas, {
+          dprCap: preset.dprCap,
+          internalResScale: preset.internalResScale,
+          transmission: preset.transmission,
+          fpsCap: preset.fpsCap,
+          antialias: preset.antialias,
+          onFirstFrame: () => setCanvasVisible(true),
+          onFrame: (ms: number) => watchdog.sample(ms),
+        });
+        handle.start();
       });
-      handle.start();
-    });
+    };
+    if (typeof window.requestIdleCallback === "function") {
+      idleId = window.requestIdleCallback(startWebGL, { timeout: 2000 });
+    } else {
+      timeoutId = window.setTimeout(startWebGL, 200);
+    }
 
     const onContextLost = (e: Event) => {
       e.preventDefault();
@@ -91,6 +102,8 @@ export default function SceneBackground() {
 
     return () => {
       disposed = true;
+      if (idleId !== undefined) window.cancelIdleCallback(idleId);
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
       canvas.removeEventListener("webglcontextlost", onContextLost);
       handle?.dispose();
     };
