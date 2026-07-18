@@ -41,7 +41,7 @@ Next.js 16 App Router project. All pages are client components (`"use client"`).
 - `/contact` — Contact methods, store hours, embedded Google Map
 - `/admin` — Password-protected admin dashboard; Header/Footer are hidden on this route
 
-**Shared components (components/):** `Header`, `Footer`, `Logo`, `WaveDivider`. Root layout (`app/layout.tsx`) wraps all pages with Header and Footer; both components hide themselves on `/admin`.
+**Shared components (components/):** `Header`, `Footer`, `Logo`, `SceneBackground` (global 3D WebGL idle background). Root layout (`app/layout.tsx`) wraps all pages with Header, Footer, and SceneBackground; all three hide themselves on `/admin`.
 
 ## API Routes
 

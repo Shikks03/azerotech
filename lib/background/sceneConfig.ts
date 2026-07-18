@@ -1,7 +1,6 @@
 // lib/background/sceneConfig.ts
-// App-only quality-tier presets. The shape config itself now lives in the shared
-// scene core (lib/background/core/shapes.mjs), the single source of truth read by
-// both the bg-lab sandbox and the app.
+// App-only quality-tier presets. The shape config itself lives in the shared
+// scene core (lib/background/core/shapes.mjs).
 import type { ActiveTier, TierPreset } from "./types";
 
 // Every tier renders at FULL internal resolution (crisp). Efficiency comes from
