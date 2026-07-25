@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Isolated background experiment — not part of the app build.
+    "bg-lab/**",
   ]),
 ]);
 
