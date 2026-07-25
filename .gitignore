@@ -46,3 +46,6 @@ next-env.d.ts
 
 # Superpowers subagent-driven-development working state (machinery, not source)
 .superpowers/
+
+# Claude Code local permission overrides (machine-specific, not shared config)
+.claude/settings.local.json
