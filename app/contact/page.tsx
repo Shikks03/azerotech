@@ -34,13 +34,13 @@ function InstagramIcon({ className, style }: { className?: string; style?: React
 const today = new Date().toLocaleDateString("en-US", { weekday: "long" });
 
 const hours = [
-  { day: "Monday",    time: "9:00 AM – 6:00 PM" },
-  { day: "Tuesday",   time: "9:00 AM – 6:00 PM" },
-  { day: "Wednesday", time: "9:00 AM – 6:00 PM" },
-  { day: "Thursday",  time: "9:00 AM – 6:00 PM" },
-  { day: "Friday",    time: "9:00 AM – 6:00 PM" },
-  { day: "Saturday",  time: "10:00 AM – 5:00 PM" },
-  { day: "Sunday",    time: "10:00 AM – 5:00 PM" },
+  { day: "Monday",    time: "9:00 AM – 8:00 PM" },
+  { day: "Tuesday",   time: "9:00 AM – 8:00 PM" },
+  { day: "Wednesday", time: "9:00 AM – 8:00 PM" },
+  { day: "Thursday",  time: "9:00 AM – 8:00 PM" },
+  { day: "Friday",    time: "9:00 AM – 8:00 PM" },
+  { day: "Saturday",  time: "10:00 AM – 8:00 PM" },
+  { day: "Sunday",    time: "10:00 AM – 8:00 PM" },
 ];
 
 const contactMethods = [

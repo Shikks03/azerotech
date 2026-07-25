@@ -79,7 +79,7 @@ export default function Footer() {
               </li>
               <li className="flex items-center gap-3">
                 <Clock className="w-4 h-4 shrink-0" style={{ color: "#94A3B8" }} />
-                <span className="text-slate-400 text-sm">Open Mon–Sun, 9AM–7PM</span>
+                <span className="text-slate-400 text-sm">Open Mon–Sun, 9AM–8PM</span>
               </li>
               <li className="flex items-center gap-3">
                 <MessageCircle className="w-4 h-4 shrink-0" style={{ color: "#4F6EF7" }} />
