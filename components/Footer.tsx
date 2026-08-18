@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { MapPin, Phone, Clock, MessageCircle } from "lucide-react";
+import { MapPin, Clock, MessageCircle } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Logo from "./Logo";
 
@@ -67,15 +67,6 @@ export default function Footer() {
                 <span className="text-slate-400 text-sm leading-relaxed">
                   9WCC+FG Imus, Cavite
                 </span>
-              </li>
-              <li className="flex items-center gap-3">
-                <Phone className="w-4 h-4 shrink-0" style={{ color: "#F43F5E" }} />
-                <a
-                  href="tel:+639000000000"
-                  className="text-slate-400 text-sm transition-colors hover:text-white"
-                >
-                  +63 900 000 0000
-                </a>
               </li>
               <li className="flex items-center gap-3">
                 <Clock className="w-4 h-4 shrink-0" style={{ color: "#94A3B8" }} />

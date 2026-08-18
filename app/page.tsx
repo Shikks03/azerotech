@@ -4,7 +4,6 @@ import Link from "next/link";
 import { motion } from "motion/react";
 import {
   ArrowRight,
-  Phone,
   MessageCircle,
   MapPin,
   Smartphone,
@@ -96,19 +95,6 @@ export default function Home() {
             >
               Book Appointment <ArrowRight className="w-5 h-5 shrink-0" />
             </Link>
-            <a
-              href="tel:+639000000000"
-              className="inline-flex items-center justify-center gap-2.5 border text-white px-8 py-4 rounded-xl transition-all hover:bg-white/10 w-full sm:w-auto"
-              style={{
-                background: "rgba(255,255,255,0.08)",
-                borderColor: "rgba(255,255,255,0.15)",
-                fontWeight: 500,
-                fontSize: "1.05rem",
-              }}
-            >
-              <Phone className="w-5 h-5 shrink-0" style={{ color: "#8B9EFF" }} />
-              Call Shop
-            </a>
             <a
               href="https://m.me/azerotech"
               target="_blank"
@@ -206,7 +192,7 @@ export default function Home() {
             {[
               { Icon: Zap,    title: "Fast Service",   desc: "Most repairs completed same day or within 24 hours.",                  delay: 0    },
               { Icon: Shield, title: "Quality Parts",  desc: "We use quality replacement parts for long-lasting results.",            delay: 0.06 },
-              { Icon: Clock3, title: "Open Daily",     desc: "We're open Monday to Sunday, 9AM to 7PM.",                             delay: 0.12 },
+              { Icon: Clock3, title: "Open Daily",     desc: "We're open Monday to Sunday, 9AM to 8PM.",                             delay: 0.12 },
               { Icon: Star,   title: "Affordable",     desc: "Fair, transparent pricing with no hidden fees.",                        delay: 0.18 },
             ].map((item) => (
               <motion.div

@@ -23,7 +23,7 @@ import {
   ArrowRight,
   ShoppingBag,
   X,
-  Phone,
+  MessageCircle,
   ArrowLeft,
 } from "lucide-react";
 
@@ -390,14 +390,16 @@ export default function Accessories() {
             Don&apos;t See What You Need?
           </motion.h2>
           <motion.p {...fadeUpView(0.08)} className="text-slate-400 max-w-sm">
-            Call us and ask about other accessories we might have in stock.
+            Message us and ask about other accessories we might have in stock.
           </motion.p>
           <motion.div
             {...fadeUpView(0.16)}
             className="flex flex-col sm:flex-row items-center gap-4 mt-2"
           >
             <a
-              href="tel:+639123456789"
+              href="https://m.me/azerotech"
+              target="_blank"
+              rel="noreferrer"
               className="inline-flex items-center gap-2.5 text-white px-8 py-4 rounded-xl transition-all hover:opacity-90"
               style={{
                 background: "linear-gradient(135deg, #4F6EF7, #6B84FF)",
@@ -406,8 +408,8 @@ export default function Accessories() {
                 boxShadow: "0 8px 32px rgba(79,110,247,0.35)",
               }}
             >
-              <Phone className="w-5 h-5 shrink-0" />
-              Call Us Now
+              <MessageCircle className="w-5 h-5 shrink-0" />
+              Message Us
             </a>
             <Link
               href="/contact"

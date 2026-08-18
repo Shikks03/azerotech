@@ -28,7 +28,6 @@ import {
   Clock,
   User,
   CheckCircle2,
-  Phone,
   MessageCircle,
   Copy,
   ChevronLeft,
@@ -883,16 +882,8 @@ export default function BookAppointment() {
             <h2 className="text-white font-bold">Reach Out Directly</h2>
           </motion.div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div className="flex justify-center">
             {[
-              {
-                Icon: Phone,
-                label: "Call Us",
-                detail: "+63 912 345 6789",
-                href: "tel:+639123456789",
-                accentBg: "rgba(79,110,247,0.15)",
-                accentColor: "#8B9EFF",
-              },
               {
                 Icon: MessageCircle,
                 label: "Messenger",
@@ -908,7 +899,7 @@ export default function BookAppointment() {
                 href={item.href}
                 target={item.href.startsWith("http") ? "_blank" : undefined}
                 rel={item.href.startsWith("http") ? "noopener noreferrer" : undefined}
-                className="flex items-center gap-5 rounded-2xl px-6 py-5 transition-all duration-300 group"
+                className="flex items-center gap-5 rounded-2xl px-6 py-5 w-full max-w-sm transition-all duration-300 group"
                 style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
               >
                 <div
