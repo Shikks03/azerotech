@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Analytics } from "@vercel/analytics/next";
 import SceneBackground from "@/components/SceneBackground";
+import { SITE_NAME, SITE_URL } from "@/lib/seo";
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
@@ -18,11 +19,25 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "AzeroTech - Phone & Laptop Repair | Modern Repair Shop",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "AzeroTech - Phone & Laptop Repair | Modern Repair Shop",
+    template: `%s | ${SITE_NAME}`,
+  },
   description:
     "Professional phone repair, laptop reformat, and affordable accessories. Fast, reliable service for your devices.",
-  keywords:
-    "phone repair, laptop repair, reformat, accessories, repair shop",
+  openGraph: {
+    title: "AzeroTech - Phone & Laptop Repair | Modern Repair Shop",
+    description:
+      "Professional phone repair, laptop reformat, and affordable accessories. Fast, reliable service for your devices.",
+    url: SITE_URL,
+    siteName: SITE_NAME,
+    locale: "en_PH",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
 };
 
 export default function RootLayout({

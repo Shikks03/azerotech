@@ -97,7 +97,19 @@ export default function Footer() {
           <p className="text-slate-500 text-sm">
             &copy; {currentYear} AzeroTech. All rights reserved.
           </p>
-          <p className="text-slate-500 text-sm">Imus, Cavite, Philippines</p>
+          <p className="text-slate-500 text-sm flex items-center gap-1.5">
+            Imus, Cavite, Philippines
+            <span aria-hidden="true">&middot;</span>
+            Site by{" "}
+            <a
+              href="https://riku.works"
+              target="_blank"
+              rel="noreferrer"
+              className="transition-colors hover:text-white"
+            >
+              RIKU
+            </a>
+          </p>
         </div>
 
       </div>
