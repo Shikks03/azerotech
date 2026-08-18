@@ -4,7 +4,6 @@ import Link from "next/link";
 import { motion } from "motion/react";
 import {
   ArrowRight,
-  Phone,
   MessageCircle,
   MapPin,
 } from "lucide-react";
@@ -44,16 +43,6 @@ const hours = [
 ];
 
 const contactMethods = [
-  {
-    Icon: Phone,
-    label: "Call Us",
-    detail: "+63 912 345 6789",
-    sub: "Available during store hours",
-    href: "tel:+639123456789",
-    accentBg: "#EEF1FF",
-    accentColor: "#4F6EF7",
-    actionLabel: "Call Now",
-  },
   {
     Icon: MessageCircle,
     label: "Messenger",
@@ -290,7 +279,7 @@ export default function Contact() {
             Ready to Get Started?
           </motion.h2>
           <motion.p {...fadeUpView(0.08)} className="text-slate-400 max-w-sm">
-            Book an appointment now or give us a call — we&apos;re happy to help.
+            Book an appointment now — we&apos;re happy to help.
           </motion.p>
           <motion.div
             {...fadeUpView(0.16)}
@@ -308,19 +297,6 @@ export default function Contact() {
             >
               Book Appointment <ArrowRight className="w-5 h-5 shrink-0" />
             </Link>
-            <a
-              href="tel:+639123456789"
-              className="inline-flex items-center gap-2.5 border text-white px-8 py-4 rounded-xl transition-all hover:bg-white/10"
-              style={{
-                background: "rgba(255,255,255,0.08)",
-                borderColor: "rgba(255,255,255,0.15)",
-                fontWeight: 500,
-                fontSize: "1.05rem",
-              }}
-            >
-              <Phone className="w-5 h-5 shrink-0" style={{ color: "#8B9EFF" }} />
-              Call Us
-            </a>
           </motion.div>
         </div>
       </section>
