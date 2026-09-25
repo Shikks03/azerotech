@@ -536,18 +536,25 @@ export default function AdminPage() {
   };
 
   const addCustomer = async (name: string, phone: string) => {
-    const res = await adminFetch("/api/customers", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, phone, type: "walk-in" }),
-    });
+    let res: Response | null;
+    try {
+      res = await adminFetch("/api/customers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, phone, type: "walk-in" }),
+      });
+    } catch {
+      alert("Network error — customer was not added");
+      return;
+    }
     if (!res) return;
     if (res.ok) {
       setAddingCustomer(false);
       loadData();
     } else {
-      const data = await res.json();
-      alert(data.error ?? "Failed to add customer");
+      // Error bodies aren't always JSON (e.g. an unhandled 500 returns an empty body)
+      const data = await res.json().catch(() => null);
+      alert(data?.error ?? `Failed to add customer (HTTP ${res.status})`);
     }
   };
 

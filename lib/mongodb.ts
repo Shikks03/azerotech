@@ -7,27 +7,31 @@ declare global {
 
 let _prodClientPromise: Promise<MongoClient> | undefined;
 
+function connect(uri: string, onFail: () => void): Promise<MongoClient> {
+  const p = new MongoClient(uri, {
+    tls: true,
+    serverSelectionTimeoutMS: 5000,
+    maxPoolSize: 10,
+  }).connect();
+  // Don't cache a failed connection — otherwise one transient DNS/network
+  // error makes every later request fail until the process restarts.
+  p.catch(onFail);
+  return p;
+}
+
 function getClientPromise(): Promise<MongoClient> {
   const uri = process.env.MONGODB_URI;
   if (!uri) throw new Error("MONGODB_URI environment variable is not defined");
 
   if (process.env.NODE_ENV === "development") {
     if (!global._mongoClientPromise) {
-      global._mongoClientPromise = new MongoClient(uri, {
-        tls: true,
-        serverSelectionTimeoutMS: 5000,
-        maxPoolSize: 10,
-      }).connect();
+      global._mongoClientPromise = connect(uri, () => { global._mongoClientPromise = undefined; });
     }
     return global._mongoClientPromise;
   }
 
   if (!_prodClientPromise) {
-    _prodClientPromise = new MongoClient(uri, {
-      tls: true,
-      serverSelectionTimeoutMS: 5000,
-      maxPoolSize: 10,
-    }).connect();
+    _prodClientPromise = connect(uri, () => { _prodClientPromise = undefined; });
   }
   return _prodClientPromise;
 }
