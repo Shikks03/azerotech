@@ -28,6 +28,7 @@ import {
   ChevronDown,
   CheckCircle,
 } from "lucide-react";
+import { TECHNICIANS, type Technician } from "@/lib/serviceRecord";
 
 const TIME_SLOTS = [
   "9:00 AM",  "9:30 AM",
@@ -112,11 +113,28 @@ interface ServiceRecord {
   id: string;
   customerId: string;
   date: string;
-  service: string;
   device: string;
+  problem?: string;
+  service?: string; // legacy records (before problem/repairedBy)
+  repairedBy?: Technician;
   cost: number;
   notes: string;
   createdAt: string;
+}
+
+type ServiceRecordData = {
+  date: string;
+  device: string;
+  problem: string;
+  cost: number;
+  repairedBy: Technician;
+  notes: string;
+};
+
+/** Today as YYYY-MM-DD in the browser's local timezone (toISOString() is UTC, which is yesterday before 8 AM in PH). */
+function todayLocal(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 interface LcdItem {
@@ -535,13 +553,13 @@ export default function AdminPage() {
     void adminFetch(`/api/reservations/${id}`, { method: "DELETE" });
   };
 
-  const addCustomer = async (name: string, phone: string) => {
+  const addCustomer = async (name: string, phone: string, record: ServiceRecordData) => {
     let res: Response | null;
     try {
       res = await adminFetch("/api/customers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, phone, type: "walk-in" }),
+        body: JSON.stringify({ name, phone, type: "walk-in", record }),
       });
     } catch {
       alert("Network error — customer was not added");
@@ -583,17 +601,26 @@ export default function AdminPage() {
     loadData();
   };
 
-  const addServiceRecord = async (
-    customerId: string,
-    data: { date: string; service: string; device: string; cost: number; notes: string }
-  ) => {
-    await adminFetch(`/api/customers/${customerId}/records`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-    setAddingRecordFor(null);
-    loadData();
+  const addServiceRecord = async (customerId: string, data: ServiceRecordData) => {
+    let res: Response | null;
+    try {
+      res = await adminFetch(`/api/customers/${customerId}/records`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+    } catch {
+      alert("Network error — record was not added");
+      return;
+    }
+    if (!res) return;
+    if (res.ok) {
+      setAddingRecordFor(null);
+      loadData();
+    } else {
+      const body = await res.json().catch(() => null);
+      alert(body?.error ?? `Failed to add record (HTTP ${res.status})`);
+    }
   };
 
   const deleteServiceRecord = async (customerId: string, recordId: string) => {
@@ -1800,8 +1827,11 @@ export default function AdminPage() {
                                               style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.15)" }}
                                             >
                                               <div className="min-w-0 flex-1">
-                                                <p className="text-sm text-white font-semibold truncate">{s.service}</p>
-                                                <p className="text-xs text-slate-500">{formatDate(s.date)} · {s.device}{s.cost > 0 ? ` · ₱${s.cost.toLocaleString()}` : ""}</p>
+                                                <p className="text-sm text-white font-semibold truncate">{s.device}</p>
+                                                <p className="text-xs text-slate-400 line-clamp-2">{s.problem ?? s.service}</p>
+                                                <p className="text-xs text-slate-500">
+                                                  {formatDate(s.date)}{s.cost > 0 ? ` · ₱${s.cost.toLocaleString()}` : ""}{s.repairedBy ? ` · Repaired by ${s.repairedBy}` : ""}
+                                                </p>
                                                 {s.notes && <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">Note: {s.notes}</p>}
                                               </div>
                                               <button
@@ -2715,30 +2745,161 @@ function ProductFormModal({
   );
 }
 
+const recordInputStyle: React.CSSProperties = {
+  background: "rgba(255,255,255,0.06)",
+  border: "1px solid rgba(255,255,255,0.12)",
+};
+const recordLabelClass = "block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5";
+const recordInputClass = "w-full px-4 py-3 rounded-xl text-sm text-white focus:outline-none placeholder:text-slate-600";
+
+type RecordFormState = {
+  date: string;
+  device: string;
+  problem: string;
+  cost: string;
+  repairedBy: Technician | "";
+};
+
+const emptyRecordForm = (): RecordFormState => ({
+  date: todayLocal(),
+  device: "",
+  problem: "",
+  cost: "",
+  repairedBy: "",
+});
+
+/** Returns the record ready to submit, or null if a required field is missing. */
+function recordFromForm(r: RecordFormState, notes = ""): ServiceRecordData | null {
+  const cost = parseFloat(r.cost);
+  if (!r.date || !r.device.trim() || !r.problem.trim() || !Number.isFinite(cost) || cost < 0 || !r.repairedBy) return null;
+  return { date: r.date, device: r.device.trim(), problem: r.problem.trim(), cost, repairedBy: r.repairedBy, notes };
+}
+
+/** Date / Device model / Problem / Price / Repaired by — shared by the walk-in and service-record modals. */
+function ServiceRecordFields({
+  value,
+  onChange,
+  accent,
+}: {
+  value: RecordFormState;
+  onChange: (next: RecordFormState) => void;
+  accent: string;
+}) {
+  const set = <K extends keyof RecordFormState>(key: K, v: RecordFormState[K]) => onChange({ ...value, [key]: v });
+  return (
+    <>
+      <div>
+        <label className={recordLabelClass}>Date</label>
+        <input
+          type="date"
+          value={value.date}
+          onChange={(e) => set("date", e.target.value)}
+          required
+          className={recordInputClass}
+          style={{ ...recordInputStyle, colorScheme: "dark" }}
+        />
+      </div>
+      <div>
+        <label className={recordLabelClass}>Device Model</label>
+        <input
+          type="text"
+          value={value.device}
+          onChange={(e) => set("device", e.target.value)}
+          placeholder="e.g. iPhone 14 Pro"
+          maxLength={200}
+          required
+          className={recordInputClass}
+          style={recordInputStyle}
+        />
+      </div>
+      <div>
+        <label className={recordLabelClass}>Problem</label>
+        <textarea
+          value={value.problem}
+          onChange={(e) => set("problem", e.target.value)}
+          rows={2}
+          placeholder="e.g. Cracked screen, touch not responding"
+          maxLength={1000}
+          required
+          className={`${recordInputClass} resize-none`}
+          style={recordInputStyle}
+        />
+      </div>
+      <div>
+        <label className={recordLabelClass}>Price (₱)</label>
+        <div className="flex items-center rounded-xl overflow-hidden" style={recordInputStyle}>
+          <span className="pl-4 pr-2 py-3 text-sm font-bold select-none" style={{ color: accent }}>₱</span>
+          <input
+            type="number"
+            min={0}
+            step="any"
+            value={value.cost}
+            onChange={(e) => set("cost", e.target.value)}
+            placeholder="0"
+            required
+            className="flex-1 pr-4 py-3 bg-transparent text-sm text-white focus:outline-none placeholder:text-slate-600"
+          />
+        </div>
+      </div>
+      <div>
+        <label className={recordLabelClass}>Repaired By</label>
+        <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Repaired by">
+          {TECHNICIANS.map((t) => {
+            const selected = value.repairedBy === t;
+            return (
+              <button
+                key={t}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                onClick={() => set("repairedBy", t)}
+                className="py-2.5 rounded-xl text-sm font-semibold transition-all"
+                style={{
+                  background: selected ? `${accent}26` : "rgba(255,255,255,0.06)",
+                  border: `1px solid ${selected ? accent : "rgba(255,255,255,0.12)"}`,
+                  color: selected ? "white" : "#94A3B8",
+                }}
+              >
+                {t}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </>
+  );
+}
+
 function AddCustomerModal({
   onSubmit,
   onClose,
 }: {
-  onSubmit: (name: string, phone: string) => void;
+  onSubmit: (name: string, phone: string, record: ServiceRecordData) => Promise<void>;
   onClose: () => void;
 }) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [record, setRecord] = useState<RecordFormState>(emptyRecordForm);
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const ease2 = [0.22, 1, 0.36, 1] as [number, number, number, number];
-  const inputStyle: React.CSSProperties = {
-    background: "rgba(255,255,255,0.06)",
-    border: "1px solid rgba(255,255,255,0.12)",
-  };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !phone.trim()) return;
-    onSubmit(name.trim(), phone.trim());
+    if (!name.trim()) return setError("Enter the customer's name.");
+    if (!/^09\d{9}$/.test(phone)) return setError("Phone must be 11 digits starting with 09.");
+    if (!record.repairedBy) return setError("Select who repaired the device.");
+    const data = recordFromForm(record);
+    if (!data) return setError("Fill in all the repair details.");
+    setError("");
+    setSubmitting(true);
+    await onSubmit(name.trim(), phone, data);
+    setSubmitting(false);
   };
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
       style={{ background: "rgba(0,0,0,0.72)", backdropFilter: "blur(6px)" }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
@@ -2747,7 +2908,7 @@ function AddCustomerModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 16 }}
         transition={{ duration: 0.2, ease: ease2 }}
-        className="w-full max-w-sm rounded-2xl p-6"
+        className="w-full max-w-sm rounded-2xl p-6 my-8"
         style={{ background: "#0D1225", border: "1px solid rgba(6,182,212,0.25)", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}
       >
         <div className="flex items-center justify-between mb-6">
@@ -2761,30 +2922,39 @@ function AddCustomerModal({
         </div>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Full Name</label>
+            <label className={recordLabelClass}>Full Name</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Juan dela Cruz"
+              maxLength={100}
               autoFocus
               required
-              className="w-full px-4 py-3 rounded-xl text-sm text-white focus:outline-none placeholder:text-slate-600"
-              style={inputStyle}
+              className={recordInputClass}
+              style={recordInputStyle}
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Phone Number</label>
+            <label className={recordLabelClass}>Phone Number</label>
             <input
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 11))}
               placeholder="09XXXXXXXXX"
               required
-              className="w-full px-4 py-3 rounded-xl text-sm text-white focus:outline-none placeholder:text-slate-600"
-              style={inputStyle}
+              className={recordInputClass}
+              style={recordInputStyle}
             />
           </div>
+
+          <div className="pt-2 border-t" style={{ borderColor: "rgba(255,255,255,0.07)" }}>
+            <p className="text-xs font-semibold uppercase tracking-widest pt-2" style={{ color: "#22D3EE" }}>Repair Details</p>
+          </div>
+          <ServiceRecordFields value={record} onChange={setRecord} accent="#22D3EE" />
+
+          {error && <p className="text-sm" style={{ color: "#F87171" }} role="alert">{error}</p>}
+
           <div className="flex gap-3 mt-2">
             <button
               type="button"
@@ -2796,10 +2966,11 @@ function AddCustomerModal({
             </button>
             <button
               type="submit"
-              className="flex-1 py-3 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90"
+              disabled={submitting}
+              className="flex-1 py-3 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50"
               style={{ background: "linear-gradient(135deg, #06B6D4, #22D3EE)", boxShadow: "0 4px 14px rgba(6,182,212,0.3)" }}
             >
-              Add Customer
+              {submitting ? "Saving…" : "Add Customer"}
             </button>
           </div>
         </form>
@@ -2907,25 +3078,24 @@ function AddServiceRecordModal({
   onClose,
 }: {
   customerName: string;
-  onSubmit: (data: { date: string; service: string; device: string; cost: number; notes: string }) => void;
+  onSubmit: (data: ServiceRecordData) => Promise<void>;
   onClose: () => void;
 }) {
-  const today = new Date().toISOString().slice(0, 10);
-  const [date, setDate] = useState(today);
-  const [service, setService] = useState("");
-  const [device, setDevice] = useState("");
-  const [cost, setCost] = useState("");
+  const [record, setRecord] = useState<RecordFormState>(emptyRecordForm);
   const [notes, setNotes] = useState("");
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const ease2 = [0.22, 1, 0.36, 1] as [number, number, number, number];
-  const inputStyle: React.CSSProperties = {
-    background: "rgba(255,255,255,0.06)",
-    border: "1px solid rgba(255,255,255,0.12)",
-  };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!date || !service.trim() || !device.trim()) return;
-    onSubmit({ date, service: service.trim(), device: device.trim(), cost: parseFloat(cost) || 0, notes: notes.trim() });
+    if (!record.repairedBy) return setError("Select who repaired the device.");
+    const data = recordFromForm(record, notes.trim());
+    if (!data) return setError("Fill in all the repair details.");
+    setError("");
+    setSubmitting(true);
+    await onSubmit(data);
+    setSubmitting(false);
   };
 
   return (
@@ -2953,70 +3123,24 @@ function AddServiceRecordModal({
         </div>
         <p className="text-slate-500 text-sm mb-5">for {customerName}</p>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <ServiceRecordFields value={record} onChange={setRecord} accent="#34D399" />
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Date</label>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              required
-              className="w-full px-4 py-3 rounded-xl text-sm text-white focus:outline-none"
-              style={{ ...inputStyle, colorScheme: "dark" }}
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Service</label>
-            <input
-              type="text"
-              value={service}
-              onChange={(e) => setService(e.target.value)}
-              placeholder="e.g. Screen Replacement"
-              required
-              autoFocus
-              className="w-full px-4 py-3 rounded-xl text-sm text-white focus:outline-none placeholder:text-slate-600"
-              style={inputStyle}
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Device</label>
-            <input
-              type="text"
-              value={device}
-              onChange={(e) => setDevice(e.target.value)}
-              placeholder="e.g. iPhone 14 Pro"
-              required
-              className="w-full px-4 py-3 rounded-xl text-sm text-white focus:outline-none placeholder:text-slate-600"
-              style={inputStyle}
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Cost (₱)</label>
-            <div className="flex items-center rounded-xl overflow-hidden" style={inputStyle}>
-              <span className="pl-4 pr-2 py-3 text-sm font-bold select-none" style={{ color: "#34D399" }}>₱</span>
-              <input
-                type="number"
-                min={0}
-                step="any"
-                value={cost}
-                onChange={(e) => setCost(e.target.value)}
-                placeholder="0"
-                className="flex-1 pr-4 py-3 bg-transparent text-sm text-white focus:outline-none placeholder:text-slate-600"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+            <label className={recordLabelClass}>
               Notes <span className="normal-case font-normal text-slate-600">(optional)</span>
             </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
+              maxLength={2000}
               placeholder="Any additional notes…"
-              className="w-full px-4 py-3 rounded-xl text-sm text-white focus:outline-none resize-none placeholder:text-slate-600"
-              style={inputStyle}
+              className={`${recordInputClass} resize-none`}
+              style={recordInputStyle}
             />
           </div>
+
+          {error && <p className="text-sm" style={{ color: "#F87171" }} role="alert">{error}</p>}
+
           <div className="flex gap-3 mt-2">
             <button
               type="button"
@@ -3028,10 +3152,11 @@ function AddServiceRecordModal({
             </button>
             <button
               type="submit"
-              className="flex-1 py-3 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90"
+              disabled={submitting}
+              className="flex-1 py-3 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50"
               style={{ background: "linear-gradient(135deg, #10B981, #34D399)", boxShadow: "0 4px 14px rgba(16,185,129,0.3)" }}
             >
-              Add Record
+              {submitting ? "Saving…" : "Add Record"}
             </button>
           </div>
         </form>

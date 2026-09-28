@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import { requireAdmin } from "@/lib/requireAdmin";
 import { DB } from "@/lib/db";
+import { parseServiceRecord } from "@/lib/serviceRecord";
 const COL = "serviceRecords";
 
 export async function GET(
@@ -35,26 +36,16 @@ export async function POST(
   if (authError) return authError;
 
   const { id } = await params;
-  const body = await req.json();
-  const { date, service, device, cost, notes } = body;
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
 
   // H8: Validate all fields
-  if (typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    return NextResponse.json({ error: "Invalid date" }, { status: 400 });
-  }
-  if (typeof service !== "string" || service.trim().length === 0 || service.length > 200) {
-    return NextResponse.json({ error: "Invalid service" }, { status: 400 });
-  }
-  if (typeof device !== "string" || device.trim().length === 0 || device.length > 200) {
-    return NextResponse.json({ error: "Invalid device" }, { status: 400 });
-  }
-  const costNum = Number(cost ?? 0);
-  if (!Number.isFinite(costNum) || costNum < 0) {
-    return NextResponse.json({ error: "Invalid cost" }, { status: 400 });
-  }
-  if (notes !== undefined && (typeof notes !== "string" || notes.length > 2000)) {
-    return NextResponse.json({ error: "Notes too long (max 2000 chars)" }, { status: 400 });
-  }
+  const parsed = parseServiceRecord(body);
+  if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
 
   const client = await clientPromise;
   const db = client.db(DB);
@@ -71,11 +62,7 @@ export async function POST(
 
   const doc = {
     customerId: id,
-    date,
-    service: service.trim(),
-    device: device.trim(),
-    cost: costNum,
-    notes: typeof notes === "string" ? notes : "",
+    ...parsed.record,
     createdAt: new Date().toISOString(),
   };
   const result = await db.collection(COL).insertOne(doc);

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { requireAdmin } from "@/lib/requireAdmin";
 import { DB } from "@/lib/db";
+import { parseServiceRecord, type ServiceRecordInput } from "@/lib/serviceRecord";
 const COL = "customers";
 
 export async function GET(req: NextRequest) {
@@ -23,7 +24,12 @@ export async function POST(req: NextRequest) {
   const authError = await requireAdmin(req);
   if (authError) return authError;
 
-  const body = await req.json();
+  let body;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
   const { name, phone } = body;
   if (typeof name !== "string" || name.trim().length === 0 || name.length > 100 || !phone) {
     return NextResponse.json({ error: "name and phone are required" }, { status: 400 });
@@ -49,13 +55,34 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid type" }, { status: 400 });
   }
 
+  // Optional first service record (walk-ins) — validated before anything is written
+  let record: ServiceRecordInput | null = null;
+  if (body.record !== undefined) {
+    const parsed = parseServiceRecord(body.record);
+    if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+    record = parsed.record;
+  }
+
+  const createdAt = new Date().toISOString();
   const doc = {
     name: name.trim(),
     phone,
     type: customerType,
     nameMismatches: [],
-    createdAt: new Date().toISOString(),
+    createdAt,
   };
   const result = await db.collection(COL).insertOne(doc);
-  return NextResponse.json({ ok: true, customerId: result.insertedId.toString() }, { status: 201 });
+  const customerId = result.insertedId.toString();
+
+  if (record) {
+    try {
+      await db.collection("serviceRecords").insertOne({ customerId, ...record, createdAt });
+    } catch {
+      // Roll back so a retry doesn't hit "Customer with this phone already exists"
+      await db.collection(COL).deleteOne({ _id: result.insertedId });
+      return NextResponse.json({ error: "Failed to save service record" }, { status: 500 });
+    }
+  }
+
+  return NextResponse.json({ ok: true, customerId }, { status: 201 });
 }

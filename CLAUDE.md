@@ -58,7 +58,7 @@ All routes are under `app/api/`. Public endpoints (appointments, reservations PO
 | `/api/products/[id]` | PATCH, DELETE | Admin | Update details or stock / delete |
 | `/api/lcd-stock` | GET, POST | Admin | List all / create LCD stock item |
 | `/api/lcd-stock/[id]` | PATCH, DELETE | Admin | Update fields (phone_brand, lcd_brand, stock, etc.; name auto-derived) / delete |
-| `/api/customers` | GET, POST | Admin | List all / create customer (phone is unique key) |
+| `/api/customers` | GET, POST | Admin | List all / create customer (phone is unique key; optional `record` creates the first service record — used by Add Walk-In) |
 | `/api/customers/[id]` | PATCH, DELETE | Admin | Update / delete (cascades: unlinks appointments + reservations) |
 | `/api/customers/[id]/records` | GET, POST | Admin | List / create service records for a customer |
 | `/api/customers/[id]/records/[recordId]` | DELETE | Admin | Delete a service record |
@@ -87,7 +87,7 @@ Generate: `node -e "const b=require('bcryptjs');console.log(b.hashSync('YOUR_PAS
 | `products` | `id` (numeric, auto-increment), `name`, `price`, `category`, `image`, `stock` |
 | `lcd_stock` | `id` (numeric, auto-increment), `name` (derived: `{phone_brand} {lcd_brand}`), `phone_brand`, `lcd_brand`, `compatible_models[]`, `anna_price?` (int\|null), `marlon_price?` (int\|null), `stock` |
 | `customers` | `_id` (ObjectId), `name`, `phone` (unique), `type`, `nameMismatches[]`, `createdAt` |
-| `serviceRecords` | `_id`, `customerId`, `date`, `service`, `device`, `cost`, `notes`, `createdAt` |
+| `serviceRecords` | `_id`, `customerId`, `date`, `device`, `problem`, `cost`, `repairedBy`, `notes`, `createdAt` (legacy records have `service` instead of `problem`/`repairedBy`) |
 | `revoked_sessions` | `jti`, `expiresAt` (TTL index), `revokedAt` — auto-deleted after token expiry |
 | `login_attempts` | `ip`, `attempts`, `lastAttempt`, `lockUntil?` — auto-cleared after 24h inactivity |
 | `public_rate_limits` | `ip`, `requests[]` — sliding window for public POST rate limiting via `lib/publicRateLimit.ts` |
@@ -134,7 +134,8 @@ These limits are enforced server-side on every route that accepts the field — 
 | `productName` | 200 | reservations |
 | product / lcd `name` | 200 | products, lcd-stock |
 | `image` (URL) | 500 | products |
-| service record `service` / `device` | 200 | service records |
+| service record `device` | 200 | service records |
+| service record `problem` | 1000 | service records |
 | `notes` | 2000 | service records |
 
 ### Enum / Format Constraints
@@ -143,6 +144,7 @@ These limits are enforced server-side on every route that accepts the field — 
 - **Appointment `status`** — `Pending | Confirmed | Completed | Cancelled`
 - **Appointment `repairStage`** — `Device Received | Waiting for Parts | Fixing | Ready for Pickup | null`
 - **Reservation `status`** — `Pending | Confirmed | Completed | Cancelled`
+- **Service record `repairedBy`** — `Gerald | Joan | JR` (list in `lib/serviceRecord.ts`)
 - **Customer `type`** — `walk-in | appointment | reservation`
 - **`date` / `pickupDate`** — `YYYY-MM-DD` format. Appointments: 1–60 days from today (server-enforced). Reservations: 1–180 days (client-enforced only).
 
