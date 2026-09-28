@@ -514,13 +514,38 @@ export default function AdminPage() {
     setLoginError(null);
   };
 
+  /**
+   * Sends an appointment mutation after the UI has already been updated optimistically.
+   * On failure, restores the previous list and tells the admin why.
+   */
+  const commitAppointmentChange = async (
+    id: string,
+    init: RequestInit,
+    previous: AppointmentEntry[],
+    action: string
+  ) => {
+    let res: Response | null;
+    try {
+      res = await adminFetch(`/api/appointments/${id}`, init);
+    } catch {
+      setAppointments(previous);
+      alert(`Network error — could not ${action} the appointment`);
+      return;
+    }
+    if (!res || res.ok) return;
+    setAppointments(previous);
+    const body = await res.json().catch(() => null);
+    alert(body?.error ? `Could not ${action} the appointment: ${body.error}` : `Could not ${action} the appointment (HTTP ${res.status})`);
+  };
+
   const updateAppointmentStatus = (id: string, status: EntryStatus) => {
+    const previous = appointments;
     setAppointments((prev) => prev.map((e) => (e.id === id ? { ...e, status } : e)));
-    void adminFetch(`/api/appointments/${id}`, {
+    void commitAppointmentChange(id, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
-    });
+    }, previous, "update");
   };
 
   const updateReservationFull = async (id: string, data: Partial<ReservationEntry>) => {
@@ -534,18 +559,20 @@ export default function AdminPage() {
   };
 
   const updateAppointmentFull = async (id: string, data: Partial<AppointmentEntry>) => {
+    const previous = appointments;
     setAppointments((prev) => prev.map((a) => (a.id === id ? { ...a, ...data } : a)));
     setEditingAppt(null);
-    await adminFetch(`/api/appointments/${id}`, {
+    await commitAppointmentChange(id, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
-    });
+    }, previous, "save");
   };
 
   const deleteAppointment = (id: string) => {
+    const previous = appointments;
     setAppointments((prev) => prev.filter((a) => a.id !== id));
-    void adminFetch(`/api/appointments/${id}`, { method: "DELETE" });
+    void commitAppointmentChange(id, { method: "DELETE" }, previous, "delete");
   };
 
   const deleteReservation = (id: string) => {
@@ -554,6 +581,14 @@ export default function AdminPage() {
   };
 
   const addCustomer = async (name: string, phone: string, record: ServiceRecordData) => {
+    // Returning customer (picked from suggestions, or phone already on file):
+    // log the visit on their existing profile instead of hitting the unique-phone 409.
+    const existing = customers.find((c) => c.phone === phone);
+    if (existing) {
+      if (await addServiceRecord(existing.id, record)) setAddingCustomer(false);
+      return;
+    }
+
     let res: Response | null;
     try {
       res = await adminFetch("/api/customers", {
@@ -601,7 +636,8 @@ export default function AdminPage() {
     loadData();
   };
 
-  const addServiceRecord = async (customerId: string, data: ServiceRecordData) => {
+  /** Returns true if the record was saved. */
+  const addServiceRecord = async (customerId: string, data: ServiceRecordData): Promise<boolean> => {
     let res: Response | null;
     try {
       res = await adminFetch(`/api/customers/${customerId}/records`, {
@@ -611,16 +647,17 @@ export default function AdminPage() {
       });
     } catch {
       alert("Network error — record was not added");
-      return;
+      return false;
     }
-    if (!res) return;
+    if (!res) return false;
     if (res.ok) {
       setAddingRecordFor(null);
       loadData();
-    } else {
-      const body = await res.json().catch(() => null);
-      alert(body?.error ?? `Failed to add record (HTTP ${res.status})`);
+      return true;
     }
+    const body = await res.json().catch(() => null);
+    alert(body?.error ?? `Failed to add record (HTTP ${res.status})`);
+    return false;
   };
 
   const deleteServiceRecord = async (customerId: string, recordId: string) => {
@@ -1982,6 +2019,7 @@ export default function AdminPage() {
         {addingCustomer && (
           <AddCustomerModal
             key="add-customer-modal"
+            customers={customers}
             onSubmit={addCustomer}
             onClose={() => setAddingCustomer(false)}
           />
@@ -2871,14 +2909,55 @@ function ServiceRecordFields({
 }
 
 function AddCustomerModal({
+  customers,
   onSubmit,
   onClose,
 }: {
+  customers: CustomerEntry[];
   onSubmit: (name: string, phone: string, record: ServiceRecordData) => Promise<void>;
   onClose: () => void;
 }) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [highlighted, setHighlighted] = useState(0);
+
+  const query = name.trim().toLowerCase();
+  const suggestions = query
+    ? customers
+        .filter((c) => c.name.toLowerCase().includes(query))
+        // Names starting with what was typed first, then alphabetical
+        .sort((a, b) =>
+          Number(!a.name.toLowerCase().startsWith(query)) - Number(!b.name.toLowerCase().startsWith(query)) ||
+          a.name.localeCompare(b.name)
+        )
+        .slice(0, 6)
+    : [];
+  const suggestionsOpen = showSuggestions && suggestions.length > 0;
+  const existingCustomer = customers.find((c) => c.phone === phone);
+
+  const pickSuggestion = (c: CustomerEntry) => {
+    setName(c.name);
+    setPhone(c.phone);
+    setShowSuggestions(false);
+  };
+
+  const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!suggestionsOpen) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlighted((h) => (h + 1) % suggestions.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlighted((h) => (h - 1 + suggestions.length) % suggestions.length);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      pickSuggestion(suggestions[highlighted] ?? suggestions[0]);
+    } else if (e.key === "Escape") {
+      e.stopPropagation();
+      setShowSuggestions(false);
+    }
+  };
   const [record, setRecord] = useState<RecordFormState>(emptyRecordForm);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -2921,19 +3000,52 @@ function AddCustomerModal({
           </button>
         </div>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div>
-            <label className={recordLabelClass}>Full Name</label>
+          <div className="relative">
+            <label htmlFor="walkin-name" className={recordLabelClass}>Full Name</label>
             <input
+              id="walkin-name"
               type="text"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => { setName(e.target.value); setShowSuggestions(true); setHighlighted(0); }}
+              onFocus={() => setShowSuggestions(true)}
+              onBlur={() => setShowSuggestions(false)}
+              onKeyDown={handleNameKeyDown}
               placeholder="e.g. Juan dela Cruz"
               maxLength={100}
               autoFocus
+              autoComplete="off"
               required
+              role="combobox"
+              aria-expanded={suggestionsOpen}
+              aria-controls="walkin-name-suggestions"
+              aria-autocomplete="list"
               className={recordInputClass}
               style={recordInputStyle}
             />
+            {suggestionsOpen && (
+              <ul
+                id="walkin-name-suggestions"
+                role="listbox"
+                className="absolute z-10 left-0 right-0 mt-1 rounded-xl overflow-hidden py-1"
+                style={{ background: "#141A33", border: "1px solid rgba(255,255,255,0.12)", boxShadow: "0 12px 32px rgba(0,0,0,0.5)" }}
+              >
+                {suggestions.map((c, i) => (
+                  <li
+                    key={c.id}
+                    role="option"
+                    aria-selected={i === highlighted}
+                    // mousedown (not click) so it fires before the input's blur closes the list
+                    onMouseDown={(e) => { e.preventDefault(); pickSuggestion(c); }}
+                    onMouseEnter={() => setHighlighted(i)}
+                    className="flex items-center justify-between gap-3 px-4 py-2 cursor-pointer text-sm"
+                    style={{ background: i === highlighted ? "rgba(34,211,238,0.12)" : "transparent" }}
+                  >
+                    <span className="text-white truncate">{c.name}</span>
+                    <span className="text-xs text-slate-500 shrink-0">{c.phone}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
           <div>
             <label className={recordLabelClass}>Phone Number</label>
@@ -2946,6 +3058,11 @@ function AddCustomerModal({
               className={recordInputClass}
               style={recordInputStyle}
             />
+            {existingCustomer && (
+              <p className="text-xs mt-1.5" style={{ color: "#22D3EE" }}>
+                Existing customer{existingCustomer.name.trim().toLowerCase() !== name.trim().toLowerCase() ? ` (saved as ${existingCustomer.name})` : ""} — this visit will be added to their history.
+              </p>
+            )}
           </div>
 
           <div className="pt-2 border-t" style={{ borderColor: "rgba(255,255,255,0.07)" }}>
@@ -2970,7 +3087,7 @@ function AddCustomerModal({
               className="flex-1 py-3 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50"
               style={{ background: "linear-gradient(135deg, #06B6D4, #22D3EE)", boxShadow: "0 4px 14px rgba(6,182,212,0.3)" }}
             >
-              {submitting ? "Saving…" : "Add Customer"}
+              {submitting ? "Saving…" : existingCustomer ? "Add Visit" : "Add Customer"}
             </button>
           </div>
         </form>
@@ -3078,7 +3195,7 @@ function AddServiceRecordModal({
   onClose,
 }: {
   customerName: string;
-  onSubmit: (data: ServiceRecordData) => Promise<void>;
+  onSubmit: (data: ServiceRecordData) => Promise<unknown>;
   onClose: () => void;
 }) {
   const [record, setRecord] = useState<RecordFormState>(emptyRecordForm);

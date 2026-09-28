@@ -1,10 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { MongoServerError } from "mongodb";
+import { MongoServerError, ObjectId, type Document, type Filter } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import { requireAdmin } from "@/lib/requireAdmin";
 import { VALID_STATUSES } from "@/lib/constants";
 import { DB } from "@/lib/db";
 const COL = "appointments";
+
+/**
+ * The admin UI addresses appointments by `id` (UUID), falling back to `_id` for
+ * documents without one; the AZT-… `appointmentId` is also accepted. Matching
+ * only `appointmentId` made every admin PATCH/DELETE a silent 404.
+ */
+function appointmentFilter(id: string): Filter<Document> {
+  const or: Filter<Document>[] = [{ id }, { appointmentId: id }];
+  if (ObjectId.isValid(id) && /^[a-f\d]{24}$/i.test(id)) or.push({ _id: new ObjectId(id) });
+  return { $or: or };
+}
 
 export async function PATCH(
   req: NextRequest,
@@ -82,7 +93,7 @@ export async function PATCH(
 
   const client = await clientPromise;
   try {
-    const result = await client.db(DB).collection(COL).updateOne({ appointmentId: id }, { $set: update });
+    const result = await client.db(DB).collection(COL).updateOne(appointmentFilter(id), { $set: update });
     if (result.matchedCount === 0) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
@@ -109,7 +120,7 @@ export async function DELETE(
 
   const { id } = await params;
   const client = await clientPromise;
-  const result = await client.db(DB).collection(COL).deleteOne({ appointmentId: id });
+  const result = await client.db(DB).collection(COL).deleteOne(appointmentFilter(id));
   if (result.deletedCount === 0) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
