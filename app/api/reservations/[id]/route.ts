@@ -1,10 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ObjectId } from "mongodb";
+import { ObjectId, type Document, type Filter } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import { requireAdmin } from "@/lib/requireAdmin";
 import { VALID_STATUSES } from "@/lib/constants";
 import { DB } from "@/lib/db";
 const COL = "reservations";
+
+/**
+ * The admin UI addresses reservations by `id` (UUID on legacy documents), falling
+ * back to `_id` for newer ones. Matching only `_id` made every admin PATCH/DELETE
+ * on a legacy reservation fail with "Invalid reservation ID".
+ */
+function reservationFilter(id: string): Filter<Document> {
+  const or: Filter<Document>[] = [{ id }];
+  if (/^[a-f\d]{24}$/i.test(id)) or.push({ _id: new ObjectId(id) });
+  return { $or: or };
+}
 
 export async function PATCH(
   req: NextRequest,
@@ -14,13 +25,6 @@ export async function PATCH(
   if (authError) return authError;
 
   const { id } = await params;
-
-  let oid: ObjectId;
-  try {
-    oid = new ObjectId(id);
-  } catch {
-    return NextResponse.json({ error: "Invalid reservation ID" }, { status: 400 });
-  }
 
   const body = await req.json();
 
@@ -85,7 +89,7 @@ export async function PATCH(
   // S8-4: Use findOneAndUpdate for atomicity — eliminates race where two concurrent
   // PATCH-to-Completed requests both read old status and both decrement stock
   const before = await col.findOneAndUpdate(
-    { _id: oid },
+    reservationFilter(id),
     { $set: update },
     { returnDocument: "before" }
   );
@@ -108,7 +112,7 @@ export async function PATCH(
       );
       if (stockResult.modifiedCount > 0) {
         // Mark the reservation so re-completing doesn't double-decrement
-        await col.updateOne({ _id: oid }, { $set: { stockAdjusted: true } });
+        await col.updateOne({ _id: before._id }, { $set: { stockAdjusted: true } });
       }
     } else if (before.status === "Completed" && update.status !== "Completed" && before.stockAdjusted === true) {
       // S9-L5: Only restore stock if stockAdjusted is explicitly true — avoids phantom restore on legacy docs where the field is undefined
@@ -116,7 +120,7 @@ export async function PATCH(
         productFilter,
         { $inc: { stock: 1 } }
       );
-      await col.updateOne({ _id: oid }, { $set: { stockAdjusted: false } });
+      await col.updateOne({ _id: before._id }, { $set: { stockAdjusted: false } });
     }
   }
 
@@ -132,15 +136,8 @@ export async function DELETE(
 
   const { id } = await params;
 
-  let oid: ObjectId;
-  try {
-    oid = new ObjectId(id);
-  } catch {
-    return NextResponse.json({ error: "Invalid reservation ID" }, { status: 400 });
-  }
-
   const client = await clientPromise;
-  const result = await client.db(DB).collection(COL).deleteOne({ _id: oid });
+  const result = await client.db(DB).collection(COL).deleteOne(reservationFilter(id));
   if (result.deletedCount === 0) {
     return NextResponse.json({ error: "Reservation not found" }, { status: 404 });
   }

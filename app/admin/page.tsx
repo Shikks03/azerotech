@@ -548,14 +548,40 @@ export default function AdminPage() {
     }, previous, "update");
   };
 
+  const commitReservationChange = async (
+    id: string,
+    init: RequestInit,
+    previous: ReservationEntry[],
+    action: string,
+    onRollback?: () => void
+  ) => {
+    const rollback = () => {
+      setReservations(previous);
+      onRollback?.();
+    };
+    let res: Response | null;
+    try {
+      res = await adminFetch(`/api/reservations/${id}`, init);
+    } catch {
+      rollback();
+      alert(`Network error — could not ${action} the reservation`);
+      return;
+    }
+    if (!res || res.ok) return;
+    rollback();
+    const body = await res.json().catch(() => null);
+    alert(body?.error ? `Could not ${action} the reservation: ${body.error}` : `Could not ${action} the reservation (HTTP ${res.status})`);
+  };
+
   const updateReservationFull = async (id: string, data: Partial<ReservationEntry>) => {
+    const previous = reservations;
     setReservations((prev) => prev.map((r) => (r.id === id ? { ...r, ...data } : r)));
     setEditingRes(null);
-    await adminFetch(`/api/reservations/${id}`, {
+    await commitReservationChange(id, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
-    });
+    }, previous, "update");
   };
 
   const updateAppointmentFull = async (id: string, data: Partial<AppointmentEntry>) => {
@@ -576,8 +602,9 @@ export default function AdminPage() {
   };
 
   const deleteReservation = (id: string) => {
+    const previous = reservations;
     setReservations((prev) => prev.filter((r) => r.id !== id));
-    void adminFetch(`/api/reservations/${id}`, { method: "DELETE" });
+    void commitReservationChange(id, { method: "DELETE" }, previous, "delete");
   };
 
   const addCustomer = async (name: string, phone: string, record: ServiceRecordData) => {
@@ -667,12 +694,13 @@ export default function AdminPage() {
 
   const updateReservationStatus = (id: string, status: EntryStatus) => {
     const reservation = reservations.find((r) => r.id === id);
+    const previousProducts = products;
     setReservations((prev) => prev.map((e) => (e.id === id ? { ...e, status } : e)));
-    void adminFetch(`/api/reservations/${id}`, {
+    void commitReservationChange(id, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
-    });
+    }, reservations, "update", () => setProducts(previousProducts));
     if (reservation && reservation.status !== status) {
       if (status === "Completed") {
         setProducts((prev) =>
@@ -2881,7 +2909,7 @@ function ServiceRecordFields({
       </div>
       <div>
         <label className={recordLabelClass}>Repaired By</label>
-        <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Repaired by">
+        <div className="grid grid-cols-4 gap-2" role="radiogroup" aria-label="Repaired by">
           {TECHNICIANS.map((t) => {
             const selected = value.repairedBy === t;
             return (

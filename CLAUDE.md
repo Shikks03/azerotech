@@ -144,7 +144,7 @@ These limits are enforced server-side on every route that accepts the field — 
 - **Appointment `status`** — `Pending | Confirmed | Completed | Cancelled`
 - **Appointment `repairStage`** — `Device Received | Waiting for Parts | Fixing | Ready for Pickup | null`
 - **Reservation `status`** — `Pending | Confirmed | Completed | Cancelled`
-- **Service record `repairedBy`** — `Gerald | Joan | JR` (list in `lib/serviceRecord.ts`)
+- **Service record `repairedBy`** — `Gerald | Joan | JR | G/J` (list in `lib/serviceRecord.ts`)
 - **Customer `type`** — `walk-in | appointment | reservation`
 - **`date` / `pickupDate`** — `YYYY-MM-DD` format. Appointments: 1–60 days from today (server-enforced). Reservations: 1–180 days (client-enforced only).
 

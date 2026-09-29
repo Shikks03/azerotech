@@ -3,10 +3,13 @@ import { NextRequest, NextResponse } from "next/server";
 // 8KB covers the largest valid payload in this system (notes up to 2000 chars + all other fields)
 const BODY_SIZE_LIMIT = 8192;
 
+// React dev mode uses eval() for debugging features; production never does, so keep it out of prod CSP
+const DEV_EVAL = process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : "";
+
 export async function middleware(req: NextRequest) {
   const csp = [
     "default-src 'self'",
-    `script-src 'self' 'unsafe-inline' https://www.googletagmanager.com`,
+    `script-src 'self' 'unsafe-inline'${DEV_EVAL} https://www.googletagmanager.com`,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' https://images.unsplash.com",

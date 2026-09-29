@@ -1,5 +1,5 @@
 /** Staff who can be credited with a walk-in repair. */
-export const TECHNICIANS = ["Gerald", "Joan", "JR"] as const;
+export const TECHNICIANS = ["Gerald", "Joan", "JR", "G/J"] as const;
 export type Technician = (typeof TECHNICIANS)[number];
 
 export interface ServiceRecordInput {
