@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 // 8KB covers the largest valid payload in this system (notes up to 2000 chars + all other fields)
 const BODY_SIZE_LIMIT = 8192;
+// Product image uploads (admin-only, resized client-side); route re-checks the exact limit
+const IMAGE_UPLOAD_PATH = "/api/products/images";
+const IMAGE_BODY_SIZE_LIMIT = 512 * 1024;
 
 // React dev mode uses eval() for debugging features; production never does, so keep it out of prod CSP
 const DEV_EVAL = process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : "";
@@ -24,8 +27,9 @@ export async function middleware(req: NextRequest) {
 
   // API-only: enforce body size limit (S9-M6: with 10s read timeout for chunked requests)
   if (req.nextUrl.pathname.startsWith("/api/")) {
+    const limit = req.nextUrl.pathname === IMAGE_UPLOAD_PATH ? IMAGE_BODY_SIZE_LIMIT : BODY_SIZE_LIMIT;
     const contentLength = req.headers.get("content-length");
-    if (contentLength && parseInt(contentLength, 10) > BODY_SIZE_LIMIT) {
+    if (contentLength && parseInt(contentLength, 10) > limit) {
       return NextResponse.json({ error: "Request body too large" }, { status: 413 });
     }
     // Enforce limit for chunked requests without Content-Length
@@ -38,7 +42,7 @@ export async function middleware(req: NextRequest) {
       ]);
       try {
         const bodyText = await readWithTimeout;
-        if (bodyText.length > BODY_SIZE_LIMIT) {
+        if (bodyText.length > limit) {
           return NextResponse.json({ error: "Request body too large" }, { status: 413 });
         }
       } catch (e) {

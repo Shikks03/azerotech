@@ -4,6 +4,8 @@ import clientPromise from "@/lib/mongodb";
 import { requireAdmin } from "@/lib/requireAdmin";
 import { ensureIndexes } from "@/lib/ensureIndexes";
 import { DB } from "@/lib/db";
+import { isValidImageRef } from "@/lib/productImages";
+import { parseProductPrice } from "@/lib/productPrice";
 const COL = "products";
 
 export async function GET(req: NextRequest) {
@@ -37,8 +39,8 @@ export async function POST(req: NextRequest) {
   if (typeof name !== "string" || name.trim().length === 0 || name.length > 200) {
     return NextResponse.json({ error: "Invalid name" }, { status: 400 });
   }
-  const priceNum = Number(price);
-  if (!Number.isFinite(priceNum) || priceNum < 0) {
+  const priceStr = parseProductPrice(price);
+  if (priceStr === null) {
     return NextResponse.json({ error: "Invalid price" }, { status: 400 });
   }
   if (typeof category !== "string" || category.trim().length === 0 || category.length > 100) {
@@ -49,7 +51,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid stock" }, { status: 400 });
   }
 
-  if (image !== undefined && image !== "" && (typeof image !== "string" || image.length > 500)) {
+  if (image !== undefined && (typeof image !== "string" || !isValidImageRef(image.trim()))) {
     return NextResponse.json({ error: "Invalid image" }, { status: 400 });
   }
 
@@ -64,7 +66,7 @@ export async function POST(req: NextRequest) {
     const maxId = all.length > 0 ? Math.max(...all.map((d) => Number(d.id))) : 0;
     newProduct = {
       name: name.trim(),
-      price: priceNum,
+      price: priceStr,
       category: category.trim(),
       image: typeof image === "string" ? image.trim() : "",
       stock: stockNum,

@@ -55,7 +55,9 @@ All routes are under `app/api/`. Public endpoints (appointments, reservations PO
 | `/api/reservations` | GET, POST | Admin (GET), Public (POST) | List all / create reservation (upserts customer) |
 | `/api/reservations/[id]` | PATCH, DELETE | Admin | Update (auto-adjusts product stock on Completed) / delete |
 | `/api/products` | GET, POST | Public (GET), Admin (POST) | List all / create product (auto-increments numeric ID) |
-| `/api/products/[id]` | PATCH, DELETE | Admin | Update details or stock / delete |
+| `/api/products/[id]` | PATCH, DELETE | Admin | Update details or stock / delete (deletes the uploaded image once unreferenced) |
+| `/api/products/images` | POST | Admin | Upload product image: raw bytes, JPEG/PNG/WebP (magic-byte checked), ≤ 500 KB; returns `{ url: "/api/products/images/<id>" }` |
+| `/api/products/images/[id]` | GET | Public | Serve an uploaded image (immutable, 1-year cache) |
 | `/api/lcd-stock` | GET, POST | Admin | List all / create LCD stock item |
 | `/api/lcd-stock/[id]` | PATCH, DELETE | Admin | Update fields (phone_brand, lcd_brand, stock, etc.; name auto-derived) / delete |
 | `/api/customers` | GET, POST | Admin | List all / create customer (phone is unique key; optional `record` creates the first service record — used by Add Walk-In) |
@@ -84,7 +86,8 @@ Generate: `node -e "const b=require('bcryptjs');console.log(b.hashSync('YOUR_PAS
 |------------|-----------|
 | `appointments` | `id` (UUID), `appointmentId` (AZT-…), `customerId`, `status`, `date`, `time`, `service`, `name`, `phone`, `brand`, `deviceType`, `problem?`, `repairStage?` |
 | `reservations` | `id` (UUID), `customerId`, `status`, `pickupDate`, `pickupTime`, `productName`, `productPrice`, `productId?` (numeric, for stock lookup) |
-| `products` | `id` (numeric, auto-increment), `name`, `price`, `category`, `image`, `stock` |
+| `products` | `id` (numeric, auto-increment), `name`, `price` (string, `"₱450"` — canonicalized by `lib/productPrice.ts`), `category`, `image` (`""`, `/api/products/images/<id>`, or `https://images.unsplash.com/…`), `stock` |
+| `product_images` | `_id`, `data` (Binary), `contentType`, `size`, `createdAt` — uploaded product photos, resized client-side to ≤ 1000px |
 | `lcd_stock` | `id` (numeric, auto-increment), `name` (derived: `{phone_brand} {lcd_brand}`), `phone_brand`, `lcd_brand`, `compatible_models[]`, `anna_price?` (int\|null), `marlon_price?` (int\|null), `stock` |
 | `customers` | `_id` (ObjectId), `name`, `phone` (unique), `type`, `nameMismatches[]`, `createdAt` |
 | `serviceRecords` | `_id`, `customerId`, `date`, `device`, `problem`, `cost`, `repairedBy`, `notes`, `createdAt` (legacy records have `service` instead of `problem`/`repairedBy`) |
@@ -116,7 +119,7 @@ Animations use the `motion` library with `whileInView` + fade-up pattern: `initi
 
 ### Request Body Size
 
-All `/api/*` routes are covered by `middleware.ts`, which rejects requests with `Content-Length > 8192` bytes (8 KB) and returns `413 Request body too large`. This limit comfortably covers the largest valid payload (service record with 2000-char notes + all other fields).
+All `/api/*` routes are covered by `middleware.ts`, which rejects requests with `Content-Length > 8192` bytes (8 KB) and returns `413 Request body too large`. This limit comfortably covers the largest valid payload (service record with 2000-char notes + all other fields). The one exception is `POST /api/products/images` (admin-only), allowed 512 KB at the middleware; the route itself caps images at 500 KB.
 
 ### String Length Limits
 
@@ -133,7 +136,7 @@ These limits are enforced server-side on every route that accepts the field — 
 | `problem` | 1000 | appointments |
 | `productName` | 200 | reservations |
 | product / lcd `name` | 200 | products, lcd-stock |
-| `image` (URL) | 500 | products |
+| `image` (URL or upload path) | 500 | products — must be `""`, an uploaded-image path, or an https URL on `ALLOWED_IMAGE_HOSTS` (`lib/productImages.ts`; keep in sync with CSP `img-src`) |
 | service record `device` | 200 | service records |
 | service record `problem` | 1000 | service records |
 | `notes` | 2000 | service records |

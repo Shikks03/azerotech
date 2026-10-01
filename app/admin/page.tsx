@@ -27,6 +27,7 @@ import {
   FileText,
   ChevronDown,
   CheckCircle,
+  ImagePlus,
 } from "lucide-react";
 import { TECHNICIANS, type Technician } from "@/lib/serviceRecord";
 
@@ -734,22 +735,56 @@ export default function AdminPage() {
     });
   };
 
+  /** Uploads an already-resized image; returns its URL, or an error message. */
+  const uploadProductImage = async (blob: Blob): Promise<{ url: string } | { error: string }> => {
+    let res: Response | null;
+    try {
+      res = await adminFetch("/api/products/images", {
+        method: "POST",
+        headers: { "Content-Type": blob.type },
+        body: blob,
+      });
+    } catch {
+      return { error: "Network error — could not upload the image" };
+    }
+    if (!res) return { error: "Session expired — log in again" };
+    const body = await res.json().catch(() => null);
+    if (!res.ok || typeof body?.url !== "string") {
+      return { error: body?.error ?? `Upload failed (HTTP ${res.status})` };
+    }
+    return { url: body.url };
+  };
+
+  /** Sends a product create/update; alerts and returns false if the server rejects it. */
+  const saveProduct = async (url: string, method: "POST" | "PATCH", data: object, action: string) => {
+    let res: Response | null;
+    try {
+      res = await adminFetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+    } catch {
+      alert(`Network error — could not ${action} the product`);
+      return false;
+    }
+    if (!res) return false;
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      alert(body?.error ? `Could not ${action} the product: ${body.error}` : `Could not ${action} the product (HTTP ${res.status})`);
+      return false;
+    }
+    return true;
+  };
+
   const addProduct = async (data: { name: string; price: string; category: string; image: string; stock: number }) => {
-    await adminFetch("/api/products", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
+    if (!(await saveProduct("/api/products", "POST", data, "add"))) return;
     setShowAddModal(false);
     loadData();
   };
 
   const editProductInfo = async (id: number, data: { name: string; price: string; category: string; image: string }) => {
-    await adminFetch(`/api/products/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
+    if (!(await saveProduct(`/api/products/${id}`, "PATCH", data, "update"))) return;
     setEditingProduct(null);
     loadData();
   };
@@ -2081,6 +2116,7 @@ export default function AdminPage() {
                 initial={{ name: "", price: "", category: "", image: "", stock: 0 }}
                 categories={categories}
                 showStock
+                uploadImage={uploadProductImage}
                 onSubmit={addProduct}
                 onClose={() => setShowAddModal(false)}
               />
@@ -2097,6 +2133,7 @@ export default function AdminPage() {
                 }}
                 categories={categories}
                 showStock={false}
+                uploadImage={uploadProductImage}
                 onSubmit={(data) => editProductInfo(editingProduct.id, data)}
                 onClose={() => setEditingProduct(null)}
               />
@@ -2602,11 +2639,44 @@ function ReservationEditModal({
 
 type ProductFormData = { name: string; price: string; category: string; image: string; stock: number };
 
+type UploadImageFn = (blob: Blob) => Promise<{ url: string } | { error: string }>;
+
+const UPLOADED_IMAGE_PREFIX = "/api/products/images/";
+const MAX_IMAGE_DIMENSION = 1000;
+const TARGET_IMAGE_BYTES = 450 * 1024;
+
+/** Shrinks a photo to fit MAX_IMAGE_DIMENSION and re-encodes it (WebP, JPEG fallback) under TARGET_IMAGE_BYTES. */
+async function resizeImage(file: File): Promise<Blob> {
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+  } catch {
+    throw new Error("Could not read that image. Use a JPEG, PNG or WebP file.");
+  }
+  const scale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+
+  for (const quality of [0.82, 0.7, 0.55]) {
+    let blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/webp", quality));
+    // Browsers without WebP encoding silently return PNG — use JPEG instead
+    if (!blob || blob.type !== "image/webp") {
+      blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/jpeg", quality));
+    }
+    if (blob && blob.size <= TARGET_IMAGE_BYTES) return blob;
+  }
+  throw new Error("Image is still too large after resizing. Try a smaller photo.");
+}
+
 function ProductFormModal({
   title,
   initial,
   categories,
   showStock,
+  uploadImage,
   onSubmit,
   onClose,
 }: {
@@ -2614,6 +2684,7 @@ function ProductFormModal({
   initial: Partial<ProductFormData>;
   categories: string[];
   showStock: boolean;
+  uploadImage: UploadImageFn;
   onSubmit: (data: ProductFormData) => void;
   onClose: () => void;
 }) {
@@ -2634,6 +2705,26 @@ function ProductFormModal({
   );
   const [image, setImage] = useState(initial.image ?? "");
   const [stock, setStock] = useState(String(initial.stock ?? 0));
+  const [uploading, setUploading] = useState(false);
+  const [imageError, setImageError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const isUploadedImage = image.startsWith(UPLOADED_IMAGE_PREFIX);
+
+  const handleFile = async (file: File | undefined) => {
+    if (!file) return;
+    setImageError("");
+    setUploading(true);
+    try {
+      const result = await uploadImage(await resizeImage(file));
+      if ("url" in result) setImage(result.url);
+      else setImageError(result.error);
+    } catch (err) {
+      setImageError((err as Error).message);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   const inputStyle: React.CSSProperties = {
     background: "rgba(255,255,255,0.06)",
@@ -2644,7 +2735,7 @@ function ProductFormModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !resolvedCategory || !price) return;
+    if (uploading || !name.trim() || !resolvedCategory || !price) return;
     onSubmit({
       name: name.trim(),
       price: `₱${price}`,
@@ -2752,17 +2843,59 @@ function ProductFormModal({
             </div>
           </div>
 
-          {/* Image URL */}
+          {/* Image — upload, or paste a URL */}
           <div>
             <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-              Image URL
+              Image
             </label>
+            <div className="flex items-center gap-3">
+              <div
+                className="w-20 h-20 shrink-0 rounded-xl overflow-hidden flex items-center justify-center"
+                style={inputStyle}
+              >
+                {image ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- admin preview of an arbitrary URL/upload
+                  <img src={image} alt="Product preview" className="w-full h-full object-cover" />
+                ) : (
+                  <ImagePlus className="w-6 h-6 text-slate-600" />
+                )}
+              </div>
+              <div className="flex flex-col gap-2 flex-1">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={(e) => handleFile(e.target.files?.[0])}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90 disabled:opacity-60"
+                  style={{ background: "rgba(79,110,247,0.15)", border: "1px solid rgba(79,110,247,0.4)", color: "#8B9EFF" }}
+                >
+                  {uploading ? "Uploading…" : image ? "Replace image" : "Upload image"}
+                </button>
+                {image && !uploading && (
+                  <button
+                    type="button"
+                    onClick={() => { setImage(""); setImageError(""); }}
+                    className="text-xs text-slate-500 hover:text-red-400 transition-colors self-start"
+                  >
+                    Remove image
+                  </button>
+                )}
+              </div>
+            </div>
+            {imageError && <p className="text-xs text-red-400 mt-2">{imageError}</p>}
             <input
               type="text"
-              value={image}
-              onChange={(e) => setImage(e.target.value)}
-              placeholder="https://..."
-              className="w-full px-4 py-3 rounded-xl text-sm text-white focus:outline-none placeholder:text-slate-600"
+              value={isUploadedImage ? "" : image}
+              onChange={(e) => { setImage(e.target.value); setImageError(""); }}
+              placeholder={isUploadedImage ? "Uploaded image in use" : "or paste an Unsplash URL (https://images.unsplash.com/…)"}
+              disabled={uploading}
+              className="w-full mt-2 px-4 py-2.5 rounded-xl text-xs text-white focus:outline-none placeholder:text-slate-600"
               style={inputStyle}
             />
           </div>
