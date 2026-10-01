@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid productPrice" }, { status: 400 });
   }
 
-  // S5-7: Validate pickupDate is a real calendar date within 1–180 days server-side
+  // S5-7: Validate pickupDate is a real calendar date within 0–180 days server-side
   const [pdYear, pdMonth, pdDay] = (pickupDate as string).split("-").map(Number);
   const parsedPickupDate = new Date(`${pickupDate}T00:00:00`);
   if (
@@ -88,12 +88,11 @@ export async function POST(req: NextRequest) {
   }
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const minPickup = new Date(today);
-  minPickup.setDate(today.getDate() + 1);
+  const minPickup = today;
   const maxPickup = new Date(today);
   maxPickup.setDate(today.getDate() + 180);
   if (parsedPickupDate < minPickup || parsedPickupDate > maxPickup) {
-    return NextResponse.json({ error: "Pickup date must be 1–180 days from today" }, { status: 400 });
+    return NextResponse.json({ error: "Pickup date must be within the next 180 days" }, { status: 400 });
   }
 
   const now = new Date();

@@ -249,6 +249,9 @@ export default function AdminPage() {
   const [lcdSearch, setLcdSearch] = useState("");
   const [lcdSort, setLcdSort] = useState<"name-asc" | "name-desc" | "low-stock" | "no-stock" | "high-stock">("name-asc");
 
+  const [productSearch, setProductSearch] = useState("");
+  const [productSort, setProductSort] = useState<"name-asc" | "name-desc" | "price-asc" | "price-desc" | "high-stock" | "low-stock" | "no-stock">("name-asc");
+
   // LCD Stock state (cloud-backed)
   const [lcdItems, setLcdItems] = useState<LcdItem[]>([]);
   const [modelsModalItem, setModelsModalItem] = useState<LcdItem | null>(null);
@@ -963,9 +966,9 @@ export default function AdminPage() {
           {(
             [
               { key: "appointments", Icon: Wrench,      label: "Appointments" },
-              { key: "reservations", Icon: ShoppingBag, label: "Reservations" },
+              { key: "reservations", Icon: ShoppingBag, label: "RSV ACC" },
               { key: "customers",    Icon: Users,       label: "Customers" },
-              { key: "inventory",    Icon: Package,     label: "Inventory" },
+              { key: "inventory",    Icon: Package,     label: "Accessories" },
               { key: "lcd-stock",    Icon: Monitor,     label: "LCD Stock" },
             ] as const
           ).map(({ key, Icon, label }) => {
@@ -1317,13 +1320,55 @@ export default function AdminPage() {
               transition={{ duration: 0.3, ease }}
             >
               {/* Inventory header */}
-              <div className="flex items-center justify-between mb-5">
-                <p className="text-slate-400 text-sm font-semibold">
-                  {products.length} product{products.length !== 1 ? "s" : ""}
-                </p>
+              <p className="text-slate-400 text-sm font-semibold mb-3">
+                {products.length} product{products.length !== 1 ? "s" : ""}
+              </p>
+
+              {/* Search + Sort + Add */}
+              <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap mb-5">
+                {products.length > 0 && (
+                  <>
+                    <div className="relative flex-1 min-w-0">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none" style={{ color: "#64748B" }} />
+                      <input
+                        type="text"
+                        value={productSearch}
+                        onChange={(e) => setProductSearch(e.target.value)}
+                        placeholder="Search by name or category…"
+                        className="w-full pl-8 pr-4 py-3 rounded-xl text-sm focus:outline-none placeholder:text-slate-500"
+                        style={{
+                          background: "rgba(255,255,255,0.06)",
+                          border: "1px solid rgba(255,255,255,0.10)",
+                          color: "#E2E8F0",
+                        }}
+                      />
+                    </div>
+                    <div className="relative flex items-center shrink-0">
+                      <ArrowUpDown className="absolute left-3 w-3.5 h-3.5 pointer-events-none" style={{ color: "#64748B" }} />
+                      <select
+                        value={productSort}
+                        onChange={(e) => setProductSort(e.target.value as typeof productSort)}
+                        className="pl-8 pr-4 py-3 rounded-xl text-sm font-medium focus:outline-none cursor-pointer appearance-none"
+                        style={{
+                          background: "rgba(255,255,255,0.06)",
+                          border: "1px solid rgba(255,255,255,0.10)",
+                          color: "#94A3B8",
+                        }}
+                      >
+                        <option value="name-asc"   style={{ background: "#0F1535" }}>Name A–Z</option>
+                        <option value="name-desc"  style={{ background: "#0F1535" }}>Name Z–A</option>
+                        <option value="price-asc"  style={{ background: "#0F1535" }}>Price Low–High</option>
+                        <option value="price-desc" style={{ background: "#0F1535" }}>Price High–Low</option>
+                        <option value="high-stock" style={{ background: "#0F1535" }}>High Stock</option>
+                        <option value="low-stock"  style={{ background: "#0F1535" }}>Low Stock</option>
+                        <option value="no-stock"   style={{ background: "#0F1535" }}>Out of Stock</option>
+                      </select>
+                    </div>
+                  </>
+                )}
                 <button
                   onClick={() => setShowAddModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:opacity-90 shrink-0 ml-auto"
                   style={{
                     background: "linear-gradient(135deg, #4F6EF7, #6B84FF)",
                     color: "white",
@@ -1337,9 +1382,46 @@ export default function AdminPage() {
 
               {products.length === 0 ? (
                 <EmptyState label="products" detail="No products yet. Click 'Add Product' to get started, or visit /api/products/seed to seed the database." />
-              ) : (
+              ) : (() => {
+                const query = productSearch.trim().toLowerCase();
+                const filtered = query
+                  ? products.filter(
+                      (p) =>
+                        p.name.toLowerCase().includes(query) ||
+                        p.category.toLowerCase().includes(query)
+                    )
+                  : products;
+
+                const sorted = [...filtered].sort((a, b) => {
+                  const priceA = Number(a.price.replace(/[₱,\s]/g, "")) || 0;
+                  const priceB = Number(b.price.replace(/[₱,\s]/g, "")) || 0;
+                  const stockA = a.stock ?? 0;
+                  const stockB = b.stock ?? 0;
+                  if (productSort === "name-desc")  return b.name.localeCompare(a.name);
+                  if (productSort === "price-asc")  return priceA - priceB;
+                  if (productSort === "price-desc") return priceB - priceA;
+                  if (productSort === "high-stock") return stockB - stockA;
+                  if (productSort === "low-stock") {
+                    const aLow = stockA > 0 && stockA <= 5 ? 0 : 1;
+                    const bLow = stockB > 0 && stockB <= 5 ? 0 : 1;
+                    if (aLow !== bLow) return aLow - bLow;
+                    return stockA - stockB;
+                  }
+                  if (productSort === "no-stock")   return (stockA === 0 ? 0 : 1) - (stockB === 0 ? 0 : 1);
+                  return a.name.localeCompare(b.name);
+                });
+
+                if (sorted.length === 0) {
+                  return (
+                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                      <p className="text-slate-400 font-semibold">No products found for &ldquo;{productSearch}&rdquo;.</p>
+                    </div>
+                  );
+                }
+
+                return (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {products.map((product, idx) => {
+                  {sorted.map((product, idx) => {
                     const { color, bg, label } = stockLevel(product.stock);
                     const stock = product.stock ?? 0;
                     const inputVal = stockInputs[product.id] ?? String(stock);
@@ -1488,7 +1570,8 @@ export default function AdminPage() {
                     );
                   })}
                 </div>
-              )}
+                );
+              })()}
             </motion.div>
           )}
 
@@ -1663,13 +1746,48 @@ export default function AdminPage() {
               transition={{ duration: 0.3, ease }}
             >
               {/* Header */}
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-slate-400 text-sm font-semibold">
-                  {customers.length} customer{customers.length !== 1 ? "s" : ""}
-                </p>
+              <p className="text-slate-400 text-sm font-semibold mb-3">
+                {customers.length} customer{customers.length !== 1 ? "s" : ""}
+              </p>
+
+              {/* Search + Sort + Add */}
+              <div className="flex items-center gap-3 mb-5 flex-wrap sm:flex-nowrap">
+                {customers.length > 0 && (
+                  <>
+                    <div className="relative flex-1 min-w-0">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none" style={{ color: "#64748B" }} />
+                      <input
+                        type="text"
+                        value={custSearch}
+                        onChange={(e) => setCustSearch(e.target.value)}
+                        placeholder="Search by name or phone…"
+                        className="w-full pl-8 pr-4 py-2.5 rounded-xl text-sm text-white focus:outline-none placeholder:text-slate-600"
+                        style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)" }}
+                      />
+                    </div>
+                    <div className="relative flex items-center shrink-0">
+                      <ArrowUpDown className="absolute left-3 w-3.5 h-3.5 pointer-events-none" style={{ color: "#64748B" }} />
+                      <select
+                        value={custSort}
+                        onChange={(e) => setCustSort(e.target.value as typeof custSort)}
+                        className="pl-8 pr-4 py-2.5 rounded-xl text-sm font-medium focus:outline-none cursor-pointer appearance-none"
+                        style={{
+                          background: "rgba(255,255,255,0.06)",
+                          border: "1px solid rgba(255,255,255,0.10)",
+                          color: "#94A3B8",
+                        }}
+                      >
+                        <option value="latest"  style={{ background: "#0F1535" }}>Latest Activity</option>
+                        <option value="oldest"  style={{ background: "#0F1535" }}>Oldest Activity</option>
+                        <option value="name"    style={{ background: "#0F1535" }}>Name A–Z</option>
+                        <option value="visits"  style={{ background: "#0F1535" }}>Most Visits</option>
+                      </select>
+                    </div>
+                  </>
+                )}
                 <button
                   onClick={() => setAddingCustomer(true)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:opacity-90 shrink-0 ml-auto"
                   style={{
                     background: "linear-gradient(135deg, #06B6D4, #22D3EE)",
                     color: "white",
@@ -1680,41 +1798,6 @@ export default function AdminPage() {
                   Add Walk-In
                 </button>
               </div>
-
-              {/* Search + Sort */}
-              {customers.length > 0 && (
-                <div className="flex gap-3 mb-5 flex-wrap sm:flex-nowrap">
-                  <div className="relative flex-1 min-w-0">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none" style={{ color: "#64748B" }} />
-                    <input
-                      type="text"
-                      value={custSearch}
-                      onChange={(e) => setCustSearch(e.target.value)}
-                      placeholder="Search by name or phone…"
-                      className="w-full pl-8 pr-4 py-2.5 rounded-xl text-sm text-white focus:outline-none placeholder:text-slate-600"
-                      style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)" }}
-                    />
-                  </div>
-                  <div className="relative flex items-center shrink-0">
-                    <ArrowUpDown className="absolute left-3 w-3.5 h-3.5 pointer-events-none" style={{ color: "#64748B" }} />
-                    <select
-                      value={custSort}
-                      onChange={(e) => setCustSort(e.target.value as typeof custSort)}
-                      className="pl-8 pr-4 py-2.5 rounded-xl text-sm font-medium focus:outline-none cursor-pointer appearance-none"
-                      style={{
-                        background: "rgba(255,255,255,0.06)",
-                        border: "1px solid rgba(255,255,255,0.10)",
-                        color: "#94A3B8",
-                      }}
-                    >
-                      <option value="latest"  style={{ background: "#0F1535" }}>Latest Activity</option>
-                      <option value="oldest"  style={{ background: "#0F1535" }}>Oldest Activity</option>
-                      <option value="name"    style={{ background: "#0F1535" }}>Name A–Z</option>
-                      <option value="visits"  style={{ background: "#0F1535" }}>Most Visits</option>
-                    </select>
-                  </div>
-                </div>
-              )}
 
               {customers.length === 0 ? (
                 <EmptyState label="customers" detail="Customer profiles are auto-created when appointments or reservations are submitted. Add walk-ins manually." />

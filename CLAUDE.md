@@ -99,7 +99,7 @@ Generate: `node -e "const b=require('bcryptjs');console.log(b.hashSync('YOUR_PAS
 
 **Authentication:** Login issues an `httpOnly` JWT cookie (`azerotech_admin_token`, 1h TTL, SameSite=Strict) signed with `JWT_SECRET`. Password is verified via bcrypt against `ADMIN_PASSWORD_HASH`. Rate limiting (5 attempts → 15 min lockout) uses the `login_attempts` MongoDB collection. Logout revokes the JTI in `revoked_sessions`. A silent refresh fires every 50 min via `/api/admin/refresh` — but only if the user was active in the last 30 min; otherwise the session is expired client-side (idle tracked via `mousemove`/`keydown`/`click` on `window`). Session state is also mirrored in `sessionStorage` key `azerotech_admin_authed` for the UI. All protected API routes call `requireAdmin()` (`lib/requireAdmin.ts`) which checks the cookie, verifies the JWT (including `role: "admin"` claim), and checks the revocation list. Mutation requests also require the `X-Requested-With: XMLHttpRequest` header (CSRF defense). Libs: `lib/auth.ts` (JWT helpers), `lib/requireAdmin.ts` (server-side auth guard), `lib/publicRateLimit.ts` (sliding-window rate limiter for public POSTs: 20 req/10 min per IP).
 
-**Tabs:** Appointments · Reservations · Inventory (Products) · LCD Stock · Customers
+**Tabs:** Appointments · Reservations · Accessories (Products) · LCD Stock · Customers
 
 The Customers tab tracks name mismatches (same phone, different submitted name) and links a customer to their full appointment/reservation/service-record history.
 
@@ -149,12 +149,12 @@ These limits are enforced server-side on every route that accepts the field — 
 - **Reservation `status`** — `Pending | Confirmed | Completed | Cancelled`
 - **Service record `repairedBy`** — `Gerald | Joan | JR | G/J` (list in `lib/serviceRecord.ts`)
 - **Customer `type`** — `walk-in | appointment | reservation`
-- **`date` / `pickupDate`** — `YYYY-MM-DD` format. Appointments: 1–60 days from today (server-enforced). Reservations: 1–180 days (client-enforced only).
+- **`date` / `pickupDate`** — `YYYY-MM-DD` format. Appointments: 1–60 days from today (server-enforced). Reservations: 0–180 days from today, i.e. same-day pickup allowed (server-enforced).
 
 ## Key Notes
 
 - Phone validation enforces Philippine format: `09XXXXXXXXX` (11 digits starting with `09`). Validated both client-side and server-side on all public POST and admin PATCH routes.
-- Appointment date picker: 1–60 days ahead (enforced server-side too). Reservation date picker: 1–180 days ahead.
+- Appointment date picker: 1–60 days ahead (enforced server-side too). Reservation date picker: same day up to 180 days ahead (enforced server-side too).
 - Appointment IDs use format `AZT-YYMMDD-XXXXXX` (2-digit year + month + day + **6-char hex** suffix, unique index + up to 5 retries on collision).
 - Currency is Philippine Peso (₱).
 - Remote images are served from `images.unsplash.com` (configured in `next.config.ts`).
