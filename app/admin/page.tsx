@@ -175,9 +175,8 @@ function stockLevel(stock: number | undefined): { color: string; bg: string; lab
 }
 
 function lcdStockLevel(stock: number): { color: string; bg: string; label: string } {
-  if (stock === 0)        return { color: "#EF4444", bg: "rgba(239,68,68,0.15)",  label: "No Stock" };
-  if (stock <= 2)         return { color: "#EAB308", bg: "rgba(234,179,8,0.15)",  label: "Low Stock" };
-  return                         { color: "#16A34A", bg: "rgba(22,163,74,0.15)",  label: "In Stock" };
+  if (stock <= 0)  return { color: "#EF4444", bg: "rgba(239,68,68,0.15)",  label: "No Stock" };
+  return                  { color: "#16A34A", bg: "rgba(22,163,74,0.15)",  label: "In Stock" };
 }
 
 function formatDate(iso: string) {
@@ -247,7 +246,7 @@ export default function AdminPage() {
     });
 
   const [lcdSearch, setLcdSearch] = useState("");
-  const [lcdSort, setLcdSort] = useState<"name-asc" | "name-desc" | "low-stock" | "no-stock" | "high-stock">("name-asc");
+  const [lcdSort, setLcdSort] = useState<"name-asc" | "name-desc" | "no-stock" | "high-stock">("name-asc");
 
   const [productSearch, setProductSearch] = useState("");
   const [productSort, setProductSort] = useState<"name-asc" | "name-desc" | "price-asc" | "price-desc" | "high-stock" | "low-stock" | "no-stock">("name-asc");
@@ -1632,14 +1631,12 @@ export default function AdminPage() {
               {lcdItems.length > 0 && (() => {
                 const total = lcdItems.length;
                 const inStock    = lcdItems.filter(i => lcdStockLevel(i.stock).label === "In Stock").length;
-                const lowStock   = lcdItems.filter(i => lcdStockLevel(i.stock).label === "Low Stock").length;
                 const outOfStock = lcdItems.filter(i => lcdStockLevel(i.stock).label === "No Stock").length;
                 return (
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+                  <div className="grid grid-cols-3 gap-3 mb-5">
                     {[
                       { label: "Total Types",   value: total,      color: "#8B9EFF", bg: "rgba(79,110,247,0.10)" },
                       { label: "In Stock",      value: inStock,    color: "#16A34A", bg: "rgba(22,163,74,0.10)" },
-                      { label: "Low Stock",     value: lowStock,   color: "#EAB308", bg: "rgba(234,179,8,0.10)" },
                       { label: "Out of Stock",  value: outOfStock, color: "#EF4444", bg: "rgba(239,68,68,0.10)" },
                     ].map(({ label, value, color, bg }) => (
                       <div key={label} className="rounded-xl px-4 py-3 flex flex-col gap-0.5" style={{ background: bg, border: `1px solid ${color}33` }}>
@@ -1671,7 +1668,6 @@ export default function AdminPage() {
                     <option value="name-asc"   style={{ background: "#0F1535" }}>Name A–Z</option>
                     <option value="name-desc"  style={{ background: "#0F1535" }}>Name Z–A</option>
                     <option value="high-stock" style={{ background: "#0F1535" }}>High Stock</option>
-                    <option value="low-stock"  style={{ background: "#0F1535" }}>Low Stock</option>
                     <option value="no-stock"   style={{ background: "#0F1535" }}>No Stock</option>
                   </select>
                 </div>
@@ -1709,13 +1705,7 @@ export default function AdminPage() {
                     if (lcdSort === "name-asc")  return nameA.localeCompare(nameB);
                     if (lcdSort === "name-desc") return nameB.localeCompare(nameA);
                     if (lcdSort === "high-stock") return b.stock - a.stock;
-                    if (lcdSort === "low-stock") {
-                      const aLow = a.stock > 0 && a.stock <= 2 ? 0 : 1;
-                      const bLow = b.stock > 0 && b.stock <= 2 ? 0 : 1;
-                      if (aLow !== bLow) return aLow - bLow;
-                      return a.stock - b.stock;
-                    }
-                    if (lcdSort === "no-stock")   return (a.stock === 0 ? 0 : 1) - (b.stock === 0 ? 0 : 1);
+                    if (lcdSort === "no-stock")   return (a.stock <= 0 ? 0 : 1) - (b.stock <= 0 ? 0 : 1);
                     return 0;
                   });
                 if (filtered.length === 0) return (
